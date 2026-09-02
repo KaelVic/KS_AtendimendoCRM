@@ -1,0 +1,256 @@
+services:
+  # ---------------------------------------------------------------------------
+  # Banco de Dados Transacional (PostgreSQL) — ADR-002
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: ks_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ks_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_DB: ${POSTGRES_DB:-ks_atendimento}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5434}:5432"
+    networks:
+      - ks-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ks_user} -d ${POSTGRES_DB:-ks_atendimento}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Estado Efêmero, Debounce e Filas (Redis) — ADR-003
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: ks_redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    ports:
+      - "127.0.0.1:${REDIS_HOST_PORT:-6380}:6379"
+    networks:
+      - ks-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # API Backend Modular (FastAPI) — ADR-001
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: ks_api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      OPENWA_SERVER_URL: http://openwa:2785
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ks-internal
+      - ks-openwa
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ---------------------------------------------------------------------------
+  # Worker Assíncrono (Python / Redis)
+  # ---------------------------------------------------------------------------
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    container_name: ks_worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      REDIS_HOST: redis
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import asyncio, os, redis.asyncio as r; raise SystemExit(0 if asyncio.run(r.from_url(os.environ['REDIS_URL']).exists('worker:heartbeat')) else 1)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - ks-internal
+
+  # ---------------------------------------------------------------------------
+  # Prospecção Isolada (ScrapeGraphAI) — ADR-007
+  # ---------------------------------------------------------------------------
+  scrapegraph:
+    build:
+      context: ./services/scrapegraph
+      dockerfile: Dockerfile
+    container_name: ks_scrapegraph
+    restart: unless-stopped
+    environment:
+      SCRAPEGRAPH_SERVICE_TOKEN: ${SCRAPEGRAPH_SERVICE_TOKEN:-}
+      SCRAPEGRAPH_MAX_PAGE_BYTES: ${SCRAPEGRAPH_MAX_PAGE_BYTES:-1048576}
+      SCRAPEGRAPH_MAX_REDIRECTS: ${SCRAPEGRAPH_MAX_REDIRECTS:-3}
+      SCRAPEGRAPH_TIMEOUT_SECONDS: ${SCRAPEGRAPH_TIMEOUT_SECONDS:-10}
+      SCRAPEGRAPH_DOMAIN_LIMIT: ${SCRAPEGRAPH_DOMAIN_LIMIT:-10}
+      SCRAPEGRAPH_DOMAIN_WINDOW_SECONDS: ${SCRAPEGRAPH_DOMAIN_WINDOW_SECONDS:-60}
+      SCRAPEGRAPH_LLM_PROVIDER: ${SCRAPEGRAPH_LLM_PROVIDER:-fake}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-1.5-flash}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081/health', timeout=2)"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - ks-internal
+
+  # ---------------------------------------------------------------------------
+  # Frontend CRM / Dashboard (Next.js)
+  # ---------------------------------------------------------------------------
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    container_name: ks_web
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - ks-internal
+
+  # ---------------------------------------------------------------------------
+  # Gateway WhatsApp OpenWA (v0.23.3 fixada) — ADR-009 / Profile opcional
+  # IMPORTANTE: Sem portas mapeadas no host; acessível unicamente na rede interna.
+  # ---------------------------------------------------------------------------
+  openwa:
+    profiles:
+      - openwa
+    image: ghcr.io/rmyndharis/openwa:0.23.3@sha256:c00b5b589446ce7dd6177f1b871789284bcfbe3612189ba109465025eb0ad4ec
+    container_name: ks_openwa
+    restart: unless-stopped
+    # The gateway is an internal transport boundary, not a public service.
+    # Keep its root filesystem immutable; only the private session volume and
+    # the temporary browser workspace are writable.
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,noexec,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # Required only by the upstream entrypoint to prepare /app/data and drop
+    # privileges before starting Node/Chromium. The application keeps no
+    # effective capabilities after bootstrap.
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    pids_limit: 512
+    mem_limit: 1g
+    shm_size: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+    environment:
+      AUTHENTICATION_TIMEOUT: 60
+      AUTO_REFRESH: "false"
+      AUTO_RESPONSES_ENABLED: "false"
+      LOG_LEVEL: ${OPENWA_LOG_LEVEL:-error}
+      HEADLESS: "true"
+      POPUP: "false"
+      # OpenWA security controls. Values are injected from the local secret
+      # store; no secret is committed to this repository.
+      API_KEY: ${OPENWA_API_KEY:-}
+      API_MASTER_KEY: ${OPENWA_API_MASTER_KEY:-}
+      API_KEY_PEPPER: ${OPENWA_API_KEY_PEPPER:-}
+      API_KEY_ROLE: ${OPENWA_API_KEY_ROLE:-operator}
+      SESSION_ID: ${OPENWA_SESSION_ID:-kaelsolutions_pilot}
+      ALLOWED_SESSIONS: ${OPENWA_ALLOWED_SESSIONS:-kaelsolutions_pilot}
+      ALLOWED_IPS: ${OPENWA_ALLOWED_IPS:-172.30.0.0/24}
+      WEBHOOK_SECRET: ${OPENWA_WEBHOOK_SECRET:-}
+      ENABLE_SWAGGER: "false"
+      SERVE_DASHBOARD: "false"
+      ALLOW_UNSIGNED_INGRESS: "false"
+      MCP_ENABLED: "false"
+      PLUGINS_ENABLED: "false"
+      PLUGINS_DIR: /tmp/openwa-plugins
+      PLUGIN_STATE_DIR: /tmp/openwa-plugin-state
+      PLUGIN_INSTALL_REQUIRE_PIN: "true"
+      PLUGIN_DOWNLOAD_ALLOW_INSECURE_REDIRECTS: "false"
+      BODY_SIZE_LIMIT: ${OPENWA_BODY_SIZE_LIMIT:-25mb}
+      INFLIGHT_BODY_BUDGET_BYTES: ${OPENWA_INFLIGHT_BODY_BUDGET_BYTES:-104857600}
+      WEBHOOK_MAX_PAYLOAD_BYTES: ${OPENWA_WEBHOOK_MAX_PAYLOAD_BYTES:-1048576}
+      WEBHOOK_MAX_PER_SESSION: ${OPENWA_WEBHOOK_MAX_PER_SESSION:-16}
+      WEBHOOK_DISPATCH_CONCURRENCY: ${OPENWA_WEBHOOK_DISPATCH_CONCURRENCY:-4}
+      RATE_LIMIT_SHORT_TTL: ${OPENWA_RATE_LIMIT_SHORT_TTL:-1000}
+      RATE_LIMIT_SHORT_LIMIT: ${OPENWA_RATE_LIMIT_SHORT_LIMIT:-10}
+      RATE_LIMIT_MEDIUM_TTL: ${OPENWA_RATE_LIMIT_MEDIUM_TTL:-60000}
+      RATE_LIMIT_MEDIUM_LIMIT: ${OPENWA_RATE_LIMIT_MEDIUM_LIMIT:-100}
+      RATE_LIMIT_LONG_TTL: ${OPENWA_RATE_LIMIT_LONG_TTL:-3600000}
+      RATE_LIMIT_LONG_LIMIT: ${OPENWA_RATE_LIMIT_LONG_LIMIT:-1000}
+      WS_RATE_LIMIT_FRAME_PER_SECOND: ${OPENWA_WS_RATE_LIMIT_FRAME_PER_SECOND:-60}
+      WS_RATE_LIMIT_FRAME_BURST: ${OPENWA_WS_RATE_LIMIT_FRAME_BURST:-120}
+      WS_RATE_LIMIT_HANDSHAKE_MAX: ${OPENWA_WS_RATE_LIMIT_HANDSHAKE_MAX:-10}
+      WS_RATE_LIMIT_HANDSHAKE_WINDOW_MS: ${OPENWA_WS_RATE_LIMIT_HANDSHAKE_WINDOW_MS:-60000}
+      WS_MAX_SOCKETS_PER_KEY: ${OPENWA_WS_MAX_SOCKETS_PER_KEY:-16}
+    volumes:
+      - openwa_sessions:/app/data
+    networks:
+      - ks-openwa
+
+volumes:
+  pgdata:
+  redisdata:
+  openwa_sessions:
+    name: ks_openwa_sessions
+
+networks:
+  ks-internal:
+    driver: bridge
+  # Only the API and the gateway join this internal-only network. PostgreSQL,
+  # Redis, web and ScrapeGraph remain on ks-internal and are not reachable by
+  # OpenWA. This is the namespace boundary for the transport adapter.
+  ks-openwa:
+    name: ks_openwa
+    internal: true
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24

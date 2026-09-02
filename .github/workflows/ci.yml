@@ -1,0 +1,80 @@
+name: CI — KS Atendimento IA
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ks_user
+          POSTGRES_PASSWORD: ks_secure_local_dev_password
+          POSTGRES_DB: ks_atendimento
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Instalar Dependências Python
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r apps/api/requirements.txt
+          pip install ruff mypy pytest-asyncio
+
+      - name: Preparar Arquivo de Ambiente de Teste
+        run: cp .env.example .env
+
+      - name: Lint com Ruff
+        run: ruff check apps/api
+
+      - name: Typecheck Python e migração baseline
+        run: |
+          mypy apps/api/src
+          alembic -c apps/api/alembic.ini upgrade head --sql > /tmp/ks-migration.sql
+
+      - name: Typecheck e build web
+        working-directory: apps/web
+        run: |
+          npx tsc --noEmit
+          npm run build
+
+      - name: Executar suíte e E2E fake
+        run: pytest -q tests apps/api/tests apps/worker/tests services/scrapegraph/tests tests/e2e
+
+      - name: Publicar evidências E2E
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-evidence
+          path: test-results/e2e/
+          if-no-files-found: ignore

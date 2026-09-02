@@ -1,0 +1,92 @@
+# Ambiente e segredos
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.crt
+id_rsa*
+
+# WhatsApp e sessões OpenWA / Baileys
+sessions/
+*session*
+*creds*
+tokens/
+auth_info*
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Mídias e uploads em tempo de execução
+storage/
+media/
+uploads/
+# O código do pipeline não é mídia runtime; uploads e storage continuam ignorados.
+!apps/api/src/media/
+!apps/api/src/media/**
+*.ogg
+*.opus
+*.mp3
+*.wav
+*.m4a
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+test-results/
+.pytest-tmp/
+.pytest-tmp-*/
+
+# Node.js e Next.js
+node_modules/
+.next/
+out/
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Docker e bancos locais
+pgdata/
+redisdata/
+openwa_data/
+
+# Artefatos locais de análise e documentação gerada
+analysis/
+graphify-out/
+*.tsbuildinfo
+
+# IDE e sistema operacional
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

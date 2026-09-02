@@ -1,0 +1,21 @@
+{
+  "name": "ks-atendimento-ia",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Monorepo KS Atendimento IA — CRM, WhatsApp e IA",
+  "scripts": {
+    "up": "docker compose up -d",
+    "up:openwa": "docker compose --profile openwa up -d",
+    "down": "docker compose down",
+    "logs": "docker compose logs -f",
+    "test:api": "pytest apps/api/tests",
+    "test:e2e": "pytest tests/e2e",
+    "install": "npm --prefix apps/web ci",
+ "test": "pytest tests apps/api/tests apps/worker/tests services/scrapegraph/tests tests/e2e",
+    "lint:api": "ruff check apps/api",
+    "lint:web": "npm --prefix apps/web run lint",
+    "lint": "npm run lint:api && npm run lint:web",
+    "typecheck:web": "npm --prefix apps/web run typecheck",
+    "build:web": "npm --prefix apps/web run build"
+  }
+}

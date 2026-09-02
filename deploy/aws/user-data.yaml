@@ -1,0 +1,15 @@
+# Amazon Linux 2023 user-data. No application secret belongs in this file.
+# The instance is managed through SSM Session Manager; SSH is not required.
+#cloud-config
+users:
+  - default
+  - name: ksapp
+    shell: /bin/bash
+    lock_passwd: true
+
+runcmd:
+  - dnf install -y docker git awscli-2
+  - systemctl enable --now docker
+  - usermod -aG docker ksapp
+  - install -d -m 0700 -o ksapp -g docker /srv/ks-atendimento
+  - install -d -m 0700 -o ksapp -g docker /var/backups/ks-atendimento

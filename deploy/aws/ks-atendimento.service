@@ -1,0 +1,17 @@
+[Unit]
+Description=KS Atendimento IA Docker Compose
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/ks-atendimento
+EnvironmentFile=-/srv/ks-atendimento/.env
+ExecStart=/srv/ks-atendimento/deploy/aws/scripts/compose-up.sh
+ExecStop=/srv/ks-atendimento/deploy/aws/scripts/compose-down.sh
+RemainAfterExit=yes
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target
