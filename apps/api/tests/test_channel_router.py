@@ -115,6 +115,27 @@ async def test_unavailable_shard_fails_closed_before_adapter_delivery() -> None:
 
 
 @pytest.mark.asyncio
+async def test_claim_persists_gateway_relink_state_and_does_not_mark_ready() -> None:
+    backend = await configured_backend()
+    gateway = FakeWhatsAppGateway(
+        SessionSnapshot(
+            tenant_id=TENANT_A,
+            session_id=SESSION,
+            owner_ref="owner-a",
+            status=SessionStatus.RELINK_REQUIRED,
+            secure=False,
+        )
+    )
+    gateway_router = ChannelRouter(backend, {GATEWAY: gateway}, owner_id="owner-a")
+
+    await gateway_router.claim_session(TENANT_A, SESSION)
+
+    assert backend.sessions[(TENANT_A, SESSION)].status == "RELINK_REQUIRED"
+    with pytest.raises(ShardUnavailableError):
+        await gateway_router.send(message(key="relink-blocked"))
+
+
+@pytest.mark.asyncio
 async def test_tenant_divergence_is_rejected_server_side() -> None:
     backend = await configured_backend()
     gateway_router = router(backend, "owner-a")

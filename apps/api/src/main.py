@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
-from .core.config import get_settings, validate_llm_settings
+from .core.config import get_settings, validate_llm_settings, validate_openwa_settings
 from .core.logging import setup_logging
 from .core.observability import metrics
 from .api.health import router as health_router
@@ -30,6 +30,7 @@ logger = logging.getLogger("ks_api")
 async def lifespan(app: FastAPI):
     logger.info("Iniciando KS Atendimento API...")
     validate_llm_settings(settings)
+    validate_openwa_settings(settings)
     yield
     logger.info("Encerrando conexões de banco e Redis...")
     await engine.dispose()

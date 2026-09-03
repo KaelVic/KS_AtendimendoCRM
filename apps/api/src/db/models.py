@@ -66,6 +66,8 @@ class Contact(Timestamped, Base):
     display_name: Mapped[str | None] = mapped_column(String(160), nullable=True)
     normalized_phone: Mapped[str | None] = mapped_column(String(32), nullable=True)
     email: Mapped[str | None] = mapped_column(String(320), nullable=True)
+    opted_out_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    opt_out_source: Mapped[str | None] = mapped_column(String(80), nullable=True)
 
 
 class Conversation(Timestamped, Base):
@@ -255,7 +257,7 @@ class ChannelSession(Timestamped, Base):
         ),
         Index("ix_channel_sessions_tenant_status", "tenant_id", "status"),
         CheckConstraint(
-            "status IN ('CONNECTED', 'DISCONNECTED', 'ASSIGNING', 'MIGRATING', 'UNAVAILABLE', 'DISABLED')",
+            "status IN ('CONNECTED', 'DISCONNECTED', 'QR_REQUIRED', 'RELINK_REQUIRED', 'ERROR', 'ASSIGNING', 'MIGRATING', 'UNAVAILABLE', 'DISABLED')",
             name="ck_channel_sessions_status",
         ),
         CheckConstraint("owner_epoch >= 0", name="ck_channel_sessions_owner_epoch_nonnegative"),
@@ -273,6 +275,10 @@ class ChannelSession(Timestamped, Base):
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     engine_version: Mapped[str] = mapped_column(String(64), nullable=False, default="v0.23.3")
     metadata_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    last_webhook_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_receipt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    restart_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_failure_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
 
 
 class SessionAssignment(Timestamped, Base):

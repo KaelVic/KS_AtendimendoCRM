@@ -16,6 +16,15 @@ async def test_liveness_endpoint():
 
 
 @pytest.mark.asyncio
+async def test_owner_health_requires_owner_authentication():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/health/owner")
+
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
 async def test_liveness_propagates_valid_correlation_id():
     correlation_id = "123e4567-e89b-12d3-a456-426614174000"
     transport = ASGITransport(app=app)

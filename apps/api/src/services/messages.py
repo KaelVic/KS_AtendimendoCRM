@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.models import AuditEvent, Contact, Conversation, ConversationControl, Message
 from ..api.contracts import SimulatedMessageRequest
+from ..contacts.optout import is_opt_out_message, mark_contact_opt_out
 
 
 async def create_simulated_message(
@@ -98,6 +99,13 @@ async def create_simulated_message(
         updated_at=now,
     )
     session.add(message)
+    if is_opt_out_message(request.content):
+        await mark_contact_opt_out(
+            session,
+            tenant_id=request.tenant_id,
+            contact_id=contact.id,
+            correlation_id=correlation_id,
+        )
     conversation.updated_at = now
     session.add(
         AuditEvent(

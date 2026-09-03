@@ -18,7 +18,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from ..db.models import AuditEvent, ChannelSession, GatewayShard, SessionAssignment
-from .whatsapp import GatewayReceipt, OutboundMessage, SessionSnapshot, WhatsAppAdapter
+from .whatsapp import GatewayReceipt, OutboundMessage, SessionSnapshot, SessionStatus, WhatsAppAdapter
 
 logger = logging.getLogger("ks_channel_router")
 
@@ -123,6 +123,10 @@ class RoutingBackend(Protocol):
 
     async def begin_migration(self, tenant_id: UUID, external_session_id: str) -> None: ...
 
+    async def set_session_status(
+        self, tenant_id: UUID, external_session_id: str, status: str, message: str | None = None
+    ) -> None: ...
+
 
 class ChannelRouter(WhatsAppAdapter):
     """Routes WhatsApp sends without changing the adapter interface."""
@@ -146,7 +150,21 @@ class ChannelRouter(WhatsAppAdapter):
 
     async def claim_session(self, tenant_id: UUID, external_session_id: str) -> RouteLease:
         lease = await self.backend.claim(tenant_id, external_session_id, self.owner_id)
-        self._adapter_for(lease)
+        adapter = self._adapter_for(lease)
+        # Ownership does not imply a connected WhatsApp session. Persist the
+        # observed state before any send can pass the router.
+        try:
+            snapshot = await adapter.session()
+            await self.backend.set_session_status(
+                tenant_id,
+                external_session_id,
+                snapshot.status.value,
+                None if snapshot.status.value == "CONNECTED" else snapshot.status.value,
+            )
+        except Exception as exc:
+            await self.backend.set_session_status(
+                tenant_id, external_session_id, "ERROR", type(exc).__name__
+            )
         return lease
 
     async def provision_pilot(
@@ -186,7 +204,19 @@ class ChannelRouter(WhatsAppAdapter):
         await self.backend.begin_migration(tenant_id, external_session_id)
         # The new owner must explicitly claim after the old owner is fenced.
         # No connection is started here; relink/restore remains an operator step.
-        await self.backend.claim(tenant_id, external_session_id, new_owner_id)
+        lease = await self.backend.claim(tenant_id, external_session_id, new_owner_id)
+        try:
+            snapshot = await self._adapter_for(lease).session()
+            await self.backend.set_session_status(
+                tenant_id,
+                external_session_id,
+                snapshot.status.value,
+                None if snapshot.status.value == "CONNECTED" else snapshot.status.value,
+            )
+        except Exception as exc:
+            await self.backend.set_session_status(
+                tenant_id, external_session_id, "ERROR", type(exc).__name__
+            )
 
     async def prepare_outbox(self, message: OutboundMessage) -> RouteLease:
         """Resolve before an outbox row is created; never trusts client routing."""
@@ -366,6 +396,17 @@ class InMemoryRoutingBackend:
                 tenant_id, gateway_id, external_session_id, engine, status=status
             )
 
+    async def set_session_status(
+        self, tenant_id: UUID, external_session_id: str, status: str, message: str | None = None
+    ) -> None:
+        if status not in {value.value for value in SessionStatus}:
+            raise ValueError("status de sessão inválido")
+        async with self._lock:
+            session = self._session_locked(tenant_id, external_session_id)
+            session.status = status
+            session.version += 1
+            self._audit_locked(tenant_id, "SESSION_STATUS_UPDATED", session, message or "system")
+
     async def claim(self, tenant_id: UUID, external_session_id: str, owner_id: str) -> RouteLease:
         async with self._lock:
             session = self._session_locked(tenant_id, external_session_id)
@@ -385,7 +426,6 @@ class InMemoryRoutingBackend:
             lease = RouteLease(tenant_id, shard.gateway_id, external_session_id, session.engine, owner_id, epoch, expires, 1)
             self.assignments[(tenant_id, external_session_id)] = _MemoryAssignment(lease)
             session.owner_epoch = epoch
-            session.status = "CONNECTED"
             session.version += 1
             shard.owner_epoch = max(shard.owner_epoch, epoch)
             self._audit_locked(tenant_id, "SESSION_ASSIGNED", session, owner_id)
@@ -568,7 +608,6 @@ class SqlAlchemyRoutingBackend:
                 )
                 db.add(assignment)
                 session.owner_epoch = epoch
-                session.status = "CONNECTED"
                 session.version += 1
                 shard.owner_epoch = max(shard.owner_epoch, epoch)
                 session.updated_at = now
@@ -664,6 +703,39 @@ class SqlAlchemyRoutingBackend:
         if current.owner_epoch != lease.owner_epoch or current.gateway_id != lease.gateway_id:
             raise LeaseExpiredError("fencing token inválido")
 
+    async def set_session_status(
+        self, tenant_id: UUID, external_session_id: str, status: str, message: str | None = None
+    ) -> None:
+        if status not in {value.value for value in SessionStatus}:
+            raise ValueError("status de sessão inválido")
+        now = self.clock()
+        async with self.session_factory() as db:
+            async with db.begin():
+                session = await db.scalar(
+                    select(ChannelSession)
+                    .where(
+                        ChannelSession.tenant_id == tenant_id,
+                        ChannelSession.external_session_id == external_session_id,
+                    )
+                    .with_for_update()
+                )
+                if session is None:
+                    raise ChannelRoutingError("sessão não encontrada")
+                session.status = status
+                session.last_failure_code = (
+                    message[:80] if message and status != "CONNECTED" else None
+                )
+                session.version += 1
+                session.updated_at = now
+                await self._audit(
+                    db,
+                    tenant_id,
+                    "SESSION_STATUS_UPDATED",
+                    session.id,
+                    "system",
+                    session.owner_epoch,
+                )
+
     async def renew(self, lease: RouteLease) -> RouteLease:
         now = self.clock()
         async with self.session_factory() as db:
@@ -703,6 +775,7 @@ class SqlAlchemyRoutingBackend:
                     sessions = (await db.scalars(select(ChannelSession).where(ChannelSession.gateway_id == gateway_id).with_for_update())).all()
                     for session in sessions:
                         session.status = "UNAVAILABLE"
+                        session.last_failure_code = message or "SHARD_UNAVAILABLE"
                         session.owner_epoch += 1
                         session.version += 1
                         await db.execute(update(SessionAssignment).where(SessionAssignment.tenant_id == session.tenant_id, SessionAssignment.external_session_id == session.external_session_id, SessionAssignment.status == "ACTIVE").values(status="FENCED", updated_at=now))

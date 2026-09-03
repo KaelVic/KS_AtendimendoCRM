@@ -1,5 +1,9 @@
 from functools import lru_cache
-from typing import Optional
+import hashlib
+import json
+from pathlib import Path
+import re
+from typing import Optional, cast
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -49,12 +53,22 @@ class Settings(BaseSettings):
     # OpenWA Gateway (rede interna Docker, v0.23.3)
     OPENWA_SERVER_URL: str = "http://openwa:2785"
     OPENWA_API_KEY: Optional[str] = None
+    OPENWA_API_MASTER_KEY: Optional[str] = None
+    OPENWA_API_KEY_PEPPER: Optional[str] = None
+    OPENWA_API_KEY_ROLE: str = "operator"
     OPENWA_WEBHOOK_SECRET: Optional[str] = None
     OPENWA_SESSION_ID: str = "kaelsolutions_pilot"
+    OPENWA_DEDICATED_NUMBER_REF: Optional[str] = None
+    OPENWA_ALLOWED_SESSIONS: str = "kaelsolutions_pilot"
+    OPENWA_ALLOWED_IPS: str = ""
     OPENWA_SHARD_ID: str = ""
     OPENWA_GATEWAY_ID: str = "00000000-0000-0000-0000-000000000002"
     OPENWA_OWNER_ID: str = "ks-api-pilot"
     OPENWA_LEASE_SECONDS: int = 30
+    OPENWA_COMMERCIAL_USE: bool = False
+    OPENWA_COMMERCIAL_GATE_APPROVED: bool = False
+    OPENWA_GATE_EVIDENCE_SHA256: Optional[str] = None
+    OPENWA_GATE_EVIDENCE_FILE: Optional[str] = None
     # ScrapeGraphAI is reachable only on the Docker internal network.
     SCRAPEGRAPH_SERVICE_URL: str = "http://scrapegraph:8081"
     SCRAPEGRAPH_SERVICE_TOKEN: Optional[str] = None
@@ -113,3 +127,55 @@ def get_settings() -> Settings:
 def validate_llm_settings(settings: Settings) -> None:
     if settings.LLM_PROVIDER.lower() == "gemini" and not settings.GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY obrigatória quando LLM_PROVIDER=gemini")
+
+
+def validate_openwa_settings(settings: Settings) -> None:
+    """Fail closed before commercial OpenWA traffic can be started."""
+    if not settings.OPENWA_COMMERCIAL_USE:
+        return
+
+    required = {
+        "OPENWA_API_KEY": settings.OPENWA_API_KEY,
+        "OPENWA_API_MASTER_KEY": settings.OPENWA_API_MASTER_KEY,
+        "OPENWA_API_KEY_PEPPER": settings.OPENWA_API_KEY_PEPPER,
+        "OPENWA_WEBHOOK_SECRET": settings.OPENWA_WEBHOOK_SECRET,
+        "OPENWA_DEDICATED_NUMBER_REF": settings.OPENWA_DEDICATED_NUMBER_REF,
+        "OPENWA_GATE_EVIDENCE_FILE": settings.OPENWA_GATE_EVIDENCE_FILE,
+        "OPENWA_GATE_EVIDENCE_SHA256": settings.OPENWA_GATE_EVIDENCE_SHA256,
+    }
+    if any(not value for value in required.values()):
+        raise RuntimeError("configuração comercial OpenWA incompleta")
+    api_key = cast(str, settings.OPENWA_API_KEY)
+    master_key = cast(str, settings.OPENWA_API_MASTER_KEY)
+    key_pepper = cast(str, settings.OPENWA_API_KEY_PEPPER)
+    evidence_path = cast(str, settings.OPENWA_GATE_EVIDENCE_FILE)
+    evidence_sha256 = cast(str, settings.OPENWA_GATE_EVIDENCE_SHA256)
+    if not settings.OPENWA_COMMERCIAL_GATE_APPROVED:
+        raise RuntimeError("gate comercial OpenWA não aprovado")
+    if len(api_key) < 32 or len(key_pepper) < 32:
+        raise RuntimeError("chave operacional OpenWA abaixo do tamanho mínimo")
+    if len(master_key) < 32:
+        raise RuntimeError("master key OpenWA abaixo do tamanho mínimo")
+    if settings.OPENWA_API_KEY_ROLE != "operator":
+        raise RuntimeError("role da chave OpenWA inválida")
+    if settings.OPENWA_ALLOWED_SESSIONS != settings.OPENWA_SESSION_ID:
+        raise RuntimeError("a chave OpenWA deve estar restrita à sessão configurada")
+    if not settings.OPENWA_ALLOWED_IPS.strip():
+        raise RuntimeError("allowlist privada do OpenWA ausente")
+    if not re.fullmatch(r"[0-9a-fA-F]{64}", evidence_sha256):
+        raise RuntimeError("SHA-256 do gate comercial inválido")
+
+    evidence_file = Path(evidence_path)
+    if not evidence_file.is_file():
+        raise RuntimeError("evidência do gate comercial ausente")
+    digest = hashlib.sha256(evidence_file.read_bytes()).hexdigest()
+    if digest.lower() != evidence_sha256.lower():
+        raise RuntimeError("hash da evidência do gate comercial divergente")
+    try:
+        manifest = json.loads(evidence_file.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError("manifesto do gate comercial inválido") from exc
+    from ..compliance.commercial_gate import evaluate_gate_manifest
+
+    if not isinstance(manifest, dict) or not evaluate_gate_manifest(manifest).approved:
+        raise RuntimeError("manifesto do gate comercial não aprovado")

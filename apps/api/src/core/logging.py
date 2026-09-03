@@ -9,7 +9,10 @@ _SECRET_RE = re.compile(
     r"(?i)(\b(?:api[_-]?master[_-]?key|api[_-]?key(?:[_-]?pepper)?|webhook[_-]?secret|authorization|bearer)\b\s*[:=]\s*)([^\s,;}]+)"
 )
 _SESSION_RE = re.compile(
-    r"(?i)(\b(?:session(?:[_-]?id)?|qr(?:[_-]?code)?)\b\s*[:=]\s*)([^\s,;}]+)"
+    r"(?i)(\b(?:session(?:[_-]?id)?|qr(?:[_-]?code)?|pairing(?:[_-]?code)?)\b\s*[:=]\s*)([^\s,;}]+)"
+)
+_JSON_SENSITIVE_RE = re.compile(
+    r"(?i)([\"']?(?:sessionId|qrCode|pairingCode)[\"']?\s*:\s*[\"'])([^\"']+)([\"'])"
 )
 _PHONE_RE = re.compile(r"(?<!\d)\+?\d{10,15}(?!\d)")
 
@@ -18,6 +21,7 @@ def redact_log_text(value: str) -> str:
     """Remove secrets and direct identifiers from application log text."""
     value = _SECRET_RE.sub(r"\1[REDACTED]", value)
     value = _SESSION_RE.sub(r"\1[REDACTED]", value)
+    value = _JSON_SENSITIVE_RE.sub(r"\1[REDACTED]\3", value)
     return _PHONE_RE.sub("[PHONE_REDACTED]", value)
 
 

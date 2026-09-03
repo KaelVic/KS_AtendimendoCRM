@@ -33,6 +33,17 @@ def test_core_schema_has_tenant_scope_and_required_indexes():
     }
 
 
+def test_channel_session_schema_can_represent_recovery_states():
+    constraint = next(
+        c
+        for c in Base.metadata.tables["channel_sessions"].constraints
+        if c.name == "ck_channel_sessions_status"
+    )
+    assert "QR_REQUIRED" in str(constraint.sqltext)
+    assert "RELINK_REQUIRED" in str(constraint.sqltext)
+    assert "ERROR" in str(constraint.sqltext)
+
+
 def test_core_schema_uses_composite_foreign_keys_for_tenant_isolation():
     for table_name, parent in (
         ("conversations", "contacts"),

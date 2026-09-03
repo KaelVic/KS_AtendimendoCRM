@@ -35,6 +35,9 @@ if [[ "${ENABLE_OPENWA:-0}" == "1" ]]; then
 fi
 (cd "$WORK_DIR" && sha256sum "${CHECKSUM_FILES[@]}" > SHA256SUMS)
 DEST="${BACKUP_S3_URI%/}/${STAMP}"
+S3_PATH="${DEST#s3://}"
+BUCKET="${S3_PATH%%/*}"
+PREFIX="${S3_PATH#*/}"
 ARTIFACTS=(postgres.dump app-data.tgz)
 if [[ "${ENABLE_OPENWA:-0}" == "1" ]]; then
   ARTIFACTS+=(openwa-session.tgz)
@@ -42,6 +45,11 @@ fi
 ARTIFACTS+=(SHA256SUMS)
 for artifact in "${ARTIFACTS[@]}"; do
   aws s3 cp "${WORK_DIR}/${artifact}" "${DEST}/${artifact}" --sse AES256 --only-show-errors
+  encryption="$(aws s3api head-object --bucket "$BUCKET" --key "${PREFIX}/${artifact}" --query 'ServerSideEncryption' --output text)"
+  if [[ "$encryption" != "AES256" && "$encryption" != "aws:kms" ]]; then
+    echo "Backup verification failed: uploaded object is not encrypted." >&2
+    exit 1
+  fi
 done
 
-printf 'Backup uploaded: %s\n' "$DEST"
+printf 'Backup uploaded and encryption verified: artifacts=%d\n' "${#ARTIFACTS[@]}"

@@ -56,6 +56,16 @@ somente uma sessao sintetica em testes.
 
 Evidencia automatizada local:
 
+- [x] Uso comercial falha fechado sem referência de número dedicado, aprovação
+  do proprietário, manifesto de evidências e SHA-256 conferido pelo helper de
+  composição.
+- [x] Opt-out explícito é persistido por tenant, auditado e bloqueia o
+  dispatcher de saídas automatizadas.
+- [x] Último webhook e receipt possuem checkpoints persistidos em
+  `channel_sessions` para sobreviver ao restart da API.
+- [x] `verify-storage-encryption.sh` valida EBS, bucket e artefato de backup
+  sem imprimir identificadores sensíveis.
+
 ```text
 python -m pytest -q tests/test_openwa_hardening.py tests/test_deploy_aws.py apps/api/tests/test_whatsapp_adapter.py apps/api/tests/test_channel_router.py
 ```

@@ -8,7 +8,7 @@ users:
     lock_passwd: true
 
 runcmd:
-  - dnf install -y docker git awscli-2
+  - dnf install -y docker git python3 awscli-2
   - systemctl enable --now docker
   - usermod -aG docker ksapp
   - install -d -m 0700 -o ksapp -g docker /srv/ks-atendimento

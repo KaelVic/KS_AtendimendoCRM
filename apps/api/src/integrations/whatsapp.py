@@ -8,7 +8,7 @@ import time
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Literal, Protocol
+from typing import Any, Awaitable, Callable, Literal, Protocol
 from uuid import UUID, uuid4
 
 import httpx
@@ -100,6 +100,7 @@ class OutboundMessage(BaseModel):
     conversation_id: UUID
     session_id: str = Field(min_length=1, max_length=255)
     recipient_ref: str = Field(min_length=1, max_length=255)
+    recipient_contact_id: UUID | None = None
     content: str | None = Field(default=None, max_length=20_000)
     media: MediaRef | None = None
     idempotency_key: str = Field(min_length=1, max_length=255)
@@ -132,6 +133,8 @@ class EventStore(Protocol):
 
 class OutboxStore(Protocol):
     async def mark_delivered(self, idempotency_key: str, receipt: GatewayReceipt) -> None: ...
+
+    async def is_recipient_opted_out(self, tenant_id: UUID, contact_id: UUID) -> bool: ...
 
 
 class OutboxRouteResolver(Protocol):
@@ -464,12 +467,20 @@ class SqlAlchemyEventStore:
 
     async def persist_before_process(self, event: InboundEvent, raw_body: bytes) -> bool:
         from sqlalchemy import select
-        from ..db.models import WebhookEvent
+        from ..db.models import ChannelSession, WebhookEvent
 
         existing = await self.session.scalar(select(WebhookEvent).where(WebhookEvent.tenant_id == event.tenant_id, WebhookEvent.provider_event_id == event.event_id))
         if existing:
             return False
         self.session.add(WebhookEvent(id=uuid4(), tenant_id=event.tenant_id, provider="OPENWA", provider_event_id=event.event_id, event_type=event.event_type, payload=json.loads(raw_body)))
+        channel_session = await self.session.scalar(
+            select(ChannelSession).where(
+                ChannelSession.tenant_id == event.tenant_id,
+                ChannelSession.external_session_id == event.session_id,
+            )
+        )
+        if channel_session is not None:
+            channel_session.last_webhook_at = event.occurred_at
         await self.session.commit()
         return True
 
@@ -477,13 +488,22 @@ class SqlAlchemyEventStore:
 class OutboxDispatcher:
     """Transporta apenas entradas já materializadas no outbox."""
 
-    def __init__(self, adapter: WhatsAppAdapter, store: OutboxStore, automatic_sender: Any | None = None, router: OutboxRouteResolver | None = None):
+    def __init__(self, adapter: WhatsAppAdapter, store: OutboxStore, automatic_sender: Any | None = None, router: OutboxRouteResolver | None = None, opt_out_checker: Callable[[UUID, UUID], Awaitable[bool]] | None = None):
         self.adapter = adapter
         self.store = store
         self.automatic_sender = automatic_sender
         self.router = router
+        self.opt_out_checker = opt_out_checker or getattr(store, "is_recipient_opted_out", None)
 
     async def dispatch(self, message: OutboundMessage) -> GatewayReceipt:
+        if (
+            message.automated
+            and message.recipient_contact_id is not None
+            and self.opt_out_checker is not None
+            and await self.opt_out_checker(message.tenant_id, message.recipient_contact_id)
+        ):
+            metrics.inc("ks_blocked_sends_total", labels={"reason": "opt_out"})
+            raise UnsafeSessionError("contato em opt-out")
         if self.router:
             await self.router.resolve_for_send(message)
             # The router is the final transport boundary. An optional
@@ -510,6 +530,15 @@ class SqlAlchemyOutboxStore:
         self.session = session
         self.router = router
 
+    async def is_recipient_opted_out(self, tenant_id: UUID, contact_id: UUID) -> bool:
+        from sqlalchemy import select
+        from ..db.models import Contact
+
+        contact = await self.session.scalar(
+            select(Contact).where(Contact.tenant_id == tenant_id, Contact.id == contact_id)
+        )
+        return bool(contact and contact.opted_out_at is not None)
+
     async def enqueue(self, message: OutboundMessage) -> str:
         from sqlalchemy import select
         from ..db.models import OutboxEvent
@@ -534,11 +563,21 @@ class SqlAlchemyOutboxStore:
     async def mark_delivered(self, idempotency_key: str, receipt: GatewayReceipt) -> None:
         from datetime import datetime, timezone
         from sqlalchemy import select
-        from ..db.models import OutboxEvent
+        from ..db.models import ChannelSession, OutboxEvent
 
         event = await self.session.scalar(select(OutboxEvent).where(OutboxEvent.idempotency_key == idempotency_key))
         if event:
             event.status = "DELIVERED"
             event.delivered_at = datetime.now(timezone.utc)
             event.payload = {**event.payload, "receipt_id": receipt.external_message_id, "receipt_status": receipt.status}
+            session_id = event.payload.get("session_id")
+            if isinstance(session_id, str):
+                channel_session = await self.session.scalar(
+                    select(ChannelSession).where(
+                        ChannelSession.tenant_id == event.tenant_id,
+                        ChannelSession.external_session_id == session_id,
+                    )
+                )
+                if channel_session is not None:
+                    channel_session.last_receipt_at = datetime.now(timezone.utc)
             await self.session.commit()

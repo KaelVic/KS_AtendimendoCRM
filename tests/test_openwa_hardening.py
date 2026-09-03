@@ -133,6 +133,9 @@ def test_aws_activation_fails_closed_before_openwa_profile_start() -> None:
     assert "OPENWA_API_KEY_PEPPER} < 32" in helper
     assert "OPENWA_API_KEY} < 32" in helper
     assert "@sha256:[0-9a-fA-F]{64}" in helper
+    assert "validate_openwa_gate.py" in helper
+    assert "gate manifest is not approved" in helper
+    assert "evidence_sha256,," in helper
 
 
 def test_backend_logs_redact_openwa_secrets_identifiers_and_phone() -> None:
@@ -141,7 +144,8 @@ def test_backend_logs_redact_openwa_secrets_identifiers_and_phone() -> None:
         logging.ERROR,
         __file__,
         1,
-        "API_MASTER_KEY=super-secret session_id=pilot qr_code=secret-qr phone=5511999999999",
+        "API_MASTER_KEY=super-secret session_id=pilot qr_code=secret-qr "
+        '"sessionId":"camel-session" "qrCode":"camel-qr" phone=5511999999999',
         (),
         None,
     )
@@ -149,4 +153,6 @@ def test_backend_logs_redact_openwa_secrets_identifiers_and_phone() -> None:
     assert "super-secret" not in output["message"]
     assert "pilot" not in output["message"]
     assert "secret-qr" not in output["message"]
+    assert "camel-session" not in output["message"]
+    assert "camel-qr" not in output["message"]
     assert "5511999999999" not in output["message"]

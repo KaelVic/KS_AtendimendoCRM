@@ -4,6 +4,9 @@
 node_modules
 .next
 test-results
+coverage
+*.log
+.git
 *.pem
 *.key
 *.crt
