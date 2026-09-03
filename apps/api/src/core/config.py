@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import re
 from typing import Optional, cast
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -43,7 +44,10 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = "ks_atendimento"
     POSTGRES_HOST: str = "postgres"
     POSTGRES_PORT: int = 5432
+    DATABASE_BACKEND: str = "local"
     DATABASE_URL: Optional[str] = None
+    # `auto` honors Supabase's `sslmode` query parameter; local PostgreSQL stays plain.
+    DATABASE_SSL_MODE: str = "auto"
 
     # Redis
     REDIS_HOST: str = "redis"
@@ -109,9 +113,34 @@ class Settings(BaseSettings):
     )
 
     def get_database_url(self) -> str:
-        if self.DATABASE_URL:
-            return self.DATABASE_URL
-        return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        raw_url = self.DATABASE_URL or (
+            f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+            f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        )
+        parsed = urlsplit(raw_url)
+        if parsed.scheme not in {"postgres", "postgresql", "postgresql+asyncpg"}:
+            return raw_url
+        query = [
+            (key, value)
+            for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+            if key != "sslmode"
+        ]
+        scheme = "postgresql+asyncpg" if parsed.scheme in {"postgres", "postgresql"} else parsed.scheme
+        return urlunsplit((scheme, parsed.netloc, parsed.path, urlencode(query), parsed.fragment))
+
+    def get_database_connect_args(self) -> dict[str, str]:
+        mode = self.DATABASE_SSL_MODE.strip().lower()
+        if mode == "auto":
+            mode = (
+                dict(parse_qsl(urlsplit(self.DATABASE_URL).query)).get("sslmode", "disable").lower()
+                if self.DATABASE_URL
+                else "disable"
+            )
+        if mode in {"disable", ""}:
+            return {}
+        if mode in {"require", "verify-ca", "verify-full"}:
+            return {"ssl": mode}
+        raise ValueError("DATABASE_SSL_MODE deve ser auto, disable, require, verify-ca ou verify-full")
 
     def get_redis_url(self) -> str:
         if self.REDIS_URL:

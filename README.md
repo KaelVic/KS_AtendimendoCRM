@@ -46,6 +46,8 @@ externa é necessário nesta fase.
 
 Métricas, readiness e runbooks operacionais estão em
 [`docs/operations/observability.md`](./docs/operations/observability.md).
+Para usar Supabase como PostgreSQL externo, consulte
+[`docs/operations/supabase-postgres.md`](./docs/operations/supabase-postgres.md).
 
 Execute `pytest -q` para incluir API, worker, ScrapeGraph e E2E fake. Os quatro
 cenários OpenWA usam gateway, sessão, volume e dados sintéticos. A matriz e os

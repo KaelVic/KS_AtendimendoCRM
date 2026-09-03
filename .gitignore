@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+!deploy/aws/.env.aws.example
 *.pem
 *.key
 *.cert
