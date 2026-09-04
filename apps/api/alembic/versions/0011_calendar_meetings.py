@@ -42,6 +42,7 @@ def upgrade() -> None:
             ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("tenant_id", "id", name="uq_meetings_tenant_id"),
         sa.UniqueConstraint("tenant_id", "idempotency_key", name="uq_meetings_tenant_idempotency"),
         sa.UniqueConstraint("tenant_id", "provider", "external_event_id", name="uq_meetings_external"),
         sa.CheckConstraint(

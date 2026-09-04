@@ -38,6 +38,7 @@ def upgrade() -> None:
         ),
         sa.ForeignKeyConstraint(["resolved_by_user_id"], ["users.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("tenant_id", "id", name="uq_pending_items_tenant_id"),
         sa.UniqueConstraint("tenant_id", "idempotency_key", name="uq_pending_items_tenant_idempotency"),
         sa.CheckConstraint("status IN ('OPEN', 'RESOLVED')", name="ck_pending_items_status"),
     )

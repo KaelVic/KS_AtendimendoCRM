@@ -8,6 +8,7 @@ from src.llm.contracts import LLMRequest, LLMResponse, MultimodalPart
 from src.llm.providers import (
     FakeProvider,
     GeminiProvider,
+    OpenAIProvider,
     RateLimitExceeded,
     SlidingWindowRateLimiter,
     _build_prompt,
@@ -60,6 +61,9 @@ async def test_gemini_repairs_once_then_validates_json():
 
     async def handler(request: httpx.Request) -> httpx.Response:
         calls.append(request)
+        payload = json.loads(request.content)
+        assert payload["generationConfig"]["responseMimeType"] == "application/json"
+        assert "intent" in payload["generationConfig"]["responseSchema"]["required"]
         return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": "bad" if len(calls) == 1 else valid}]}}]})
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
@@ -84,6 +88,28 @@ async def test_gemini_invalid_repair_falls_back_after_exactly_one_repair():
     assert result.used_fallback is True
     assert result.repair_attempted is True
     assert len(calls) == 2
+
+
+@pytest.mark.asyncio
+async def test_openai_responses_provider_uses_structured_json_without_storage():
+    calls = []
+    valid = response().model_dump_json()
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        payload = json.loads(request.content)
+        assert payload["model"] == "test-model"
+        assert payload["text"]["format"]["type"] == "json_object"
+        assert payload["store"] is False
+        assert request.headers["authorization"] == "Bearer test-key"
+        return httpx.Response(200, json={"output_text": valid})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        result = await OpenAIProvider("test-key", model="test-model", client=client).generate(request())
+
+    assert result.response.intent == "GREETING"
+    assert result.pending is False
+    assert len(calls) == 1
 
 
 @pytest.mark.asyncio

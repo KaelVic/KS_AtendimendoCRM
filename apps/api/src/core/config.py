@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = 5432
     DATABASE_BACKEND: str = "local"
     DATABASE_URL: Optional[str] = None
-    # `auto` honors Supabase's `sslmode` query parameter; local PostgreSQL stays plain.
+    # `auto` honors the external provider's `sslmode` query parameter; local PostgreSQL stays plain.
     DATABASE_SSL_MODE: str = "auto"
 
     # Redis
@@ -84,10 +84,12 @@ class Settings(BaseSettings):
     OUTREACH_DAILY_LIMIT: int = 5
     OUTREACH_MIN_INTERVAL_SECONDS: int = 300
 
-    # LLM provider. Gemini is opt-in so local tests never require a secret.
+    # LLM provider is opt-in so local tests never require a secret.
     LLM_PROVIDER: str = "fake"
     GEMINI_API_KEY: Optional[str] = None
-    GEMINI_MODEL: str = "gemini-1.5-flash"
+    GEMINI_MODEL: str = "gemini-3.5-flash"
+    OPENAI_API_KEY: Optional[str] = None
+    OPENAI_MODEL: str = "gpt-4o-mini"
     LLM_TIMEOUT_SECONDS: float = 12.0
     LLM_MAX_RETRIES: int = 2
     LLM_RATE_LIMIT: int = 30
@@ -123,7 +125,7 @@ class Settings(BaseSettings):
         query = [
             (key, value)
             for key, value in parse_qsl(parsed.query, keep_blank_values=True)
-            if key != "sslmode"
+            if key not in {"sslmode", "channel_binding"}
         ]
         scheme = "postgresql+asyncpg" if parsed.scheme in {"postgres", "postgresql"} else parsed.scheme
         return urlunsplit((scheme, parsed.netloc, parsed.path, urlencode(query), parsed.fragment))
@@ -156,6 +158,8 @@ def get_settings() -> Settings:
 def validate_llm_settings(settings: Settings) -> None:
     if settings.LLM_PROVIDER.lower() == "gemini" and not settings.GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY obrigatória quando LLM_PROVIDER=gemini")
+    if settings.LLM_PROVIDER.lower() == "openai" and not settings.OPENAI_API_KEY:
+        raise RuntimeError("OPENAI_API_KEY obrigatória quando LLM_PROVIDER=openai")
 
 
 def validate_openwa_settings(settings: Settings) -> None:

@@ -103,6 +103,7 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=NOW),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=NOW),
         sa.ForeignKeyConstraint(["tenant_id", "conversation_id"], ["conversations.tenant_id", "conversations.id"], ondelete="CASCADE"),
+        sa.UniqueConstraint("tenant_id", "id", name="uq_messages_tenant_id"),
         sa.UniqueConstraint("tenant_id", "idempotency_key", name="uq_messages_tenant_idempotency"),
         sa.UniqueConstraint("tenant_id", "channel", "external_message_id", name="uq_messages_external"),
     )

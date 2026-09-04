@@ -123,6 +123,8 @@ Criar parâmetros SecureString fora do Git, sem imprimir os valores:
 ```bash
 aws ssm put-parameter --name /ks-atendimento/production/POSTGRES_PASSWORD \
   --type SecureString --value "$POSTGRES_PASSWORD" --overwrite
+aws ssm put-parameter --name /ks-atendimento/production/DATABASE_URL \
+  --type SecureString --value "$DATABASE_URL" --overwrite
 aws ssm put-parameter --name /ks-atendimento/production/JWT_SECRET_KEY \
   --type SecureString --value "$JWT_SECRET_KEY" --overwrite
 ```

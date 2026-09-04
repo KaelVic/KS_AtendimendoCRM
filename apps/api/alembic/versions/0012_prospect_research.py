@@ -32,6 +32,7 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("tenant_id", "id", name="uq_prospect_researches_tenant_id"),
         sa.UniqueConstraint("tenant_id", "source_fingerprint", name="uq_prospect_research_source"),
         sa.UniqueConstraint("tenant_id", "idempotency_key", name="uq_prospect_research_idempotency"),
         sa.CheckConstraint(

@@ -49,6 +49,7 @@ def upgrade() -> None:
             ondelete="RESTRICT",
         ),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("tenant_id", "id", name="uq_commercial_orders_tenant_id"),
         sa.UniqueConstraint("tenant_id", "proposal_id", name="uq_commercial_orders_proposal"),
         sa.UniqueConstraint(
             "tenant_id", "acceptance_idempotency_key", name="uq_commercial_orders_acceptance_key"

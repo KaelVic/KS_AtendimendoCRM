@@ -1,15 +1,15 @@
 from src.core.config import Settings
 
 
-def test_supabase_postgres_url_uses_asyncpg_and_ssl() -> None:
+def test_external_postgres_url_uses_asyncpg_and_ssl() -> None:
     settings = Settings(
-        DATABASE_BACKEND="supabase",
-        DATABASE_URL="postgresql://postgres:example@db.example.supabase.co:5432/postgres?sslmode=require",
+        DATABASE_BACKEND="neon",
+        DATABASE_URL="postgresql://neondb_owner:example@ep-example.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
         DATABASE_SSL_MODE="auto",
     )
 
     assert settings.get_database_url() == (
-        "postgresql+asyncpg://postgres:example@db.example.supabase.co:5432/postgres"
+        "postgresql+asyncpg://neondb_owner:example@ep-example.sa-east-1.aws.neon.tech/neondb"
     )
     assert settings.get_database_connect_args() == {"ssl": "require"}
 

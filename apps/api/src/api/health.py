@@ -283,10 +283,16 @@ async def build_health_report(
             },
         },
     }
+    llm_provider = settings.LLM_PROVIDER.lower()
     components["gemini"] = configured_component(
         "gemini",
-        settings.LLM_PROVIDER.lower() != "gemini" or bool(settings.GEMINI_API_KEY),
-        simulated=settings.LLM_PROVIDER.lower() != "gemini",
+        llm_provider != "gemini" or bool(settings.GEMINI_API_KEY),
+        simulated=llm_provider != "gemini",
+    )
+    components["openai"] = configured_component(
+        "openai",
+        llm_provider != "openai" or bool(settings.OPENAI_API_KEY),
+        simulated=llm_provider != "openai",
     )
     components["email"] = configured_component(
         "email",

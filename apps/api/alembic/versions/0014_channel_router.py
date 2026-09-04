@@ -49,6 +49,14 @@ def upgrade() -> None:
     op.alter_column("channel_sessions", "provider", new_column_name="engine")
     op.alter_column("channel_sessions", "provider_session_id", new_column_name="external_session_id")
     op.execute("UPDATE channel_sessions SET owner_epoch = 0, engine_version = version")
+    # The legacy default is a gateway version string and cannot be cast to the
+    # new integer row-version column by PostgreSQL.
+    op.alter_column(
+        "channel_sessions",
+        "version",
+        server_default=None,
+        existing_nullable=False,
+    )
     op.alter_column(
         "channel_sessions",
         "version",

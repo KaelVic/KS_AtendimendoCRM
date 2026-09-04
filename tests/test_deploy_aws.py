@@ -138,20 +138,21 @@ def test_local_postgres_is_opt_in_for_external_supabase_mode() -> None:
     assert "postgres" not in base["worker"]["depends_on"]
 
 
-def test_supabase_deploy_example_uses_external_database_without_secrets() -> None:
+def test_neon_deploy_example_uses_external_database_without_secrets() -> None:
     text = (AWS / ".env.aws.example").read_text(encoding="utf-8")
 
-    assert "DATABASE_BACKEND=supabase" in text
+    assert "DATABASE_BACKEND=neon" in text
     assert "DATABASE_SSL_MODE=auto" in text
     assert "COMPOSE_PROFILES=" in text
     for key in ("DATABASE_URL", "POSTGRES_PASSWORD", "JWT_SECRET_KEY"):
         assert re.search(rf"^{key}=$", text, re.MULTILINE)
 
 
-def test_supabase_migration_script_is_fail_closed_and_uses_alembic() -> None:
+def test_external_migration_script_is_fail_closed_and_uses_alembic() -> None:
     script = (AWS / "scripts" / "migrate.sh").read_text(encoding="utf-8")
 
-    assert "DATABASE_BACKEND:-local" in script
+    assert 'DATABASE_BACKEND="${DATABASE_BACKEND:-local}"' in script
+    assert "neon|supabase|external" in script
     assert "DATABASE_URL:?DATABASE_URL" in script
     assert "alembic upgrade head" in script
     assert "--no-deps" in script

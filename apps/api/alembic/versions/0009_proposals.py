@@ -42,6 +42,7 @@ def upgrade() -> None:
             ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("tenant_id", "id", name="uq_proposals_tenant_id"),
         sa.UniqueConstraint("tenant_id", "idempotency_key", name="uq_proposals_tenant_idempotency"),
         sa.CheckConstraint(
             "status IN ('RENDERED', 'HUMAN_APPROVAL_REQUIRED')",

@@ -115,6 +115,7 @@ class Message(Timestamped, Base):
     __tablename__ = "messages"
     __table_args__ = (
         ForeignKeyConstraint(["tenant_id", "conversation_id"], ["conversations.tenant_id", "conversations.id"], ondelete="CASCADE"),
+        UniqueConstraint("tenant_id", "id", name="uq_messages_tenant_id"),
         UniqueConstraint("tenant_id", "idempotency_key", name="uq_messages_tenant_idempotency"),
         UniqueConstraint("tenant_id", "channel", "external_message_id", name="uq_messages_external"),
         Index("ix_messages_tenant_conversation_created", "tenant_id", "conversation_id", "created_at"),
@@ -374,6 +375,7 @@ class PendingItem(Timestamped, Base):
             ondelete="CASCADE",
         ),
         ForeignKeyConstraint(["resolved_by_user_id"], ["users.id"], ondelete="SET NULL"),
+        UniqueConstraint("tenant_id", "id", name="uq_pending_items_tenant_id"),
         UniqueConstraint("tenant_id", "idempotency_key", name="uq_pending_items_tenant_idempotency"),
         Index("ix_pending_items_tenant_status_due", "tenant_id", "status", "due_at"),
         Index("ix_pending_items_tenant_conversation", "tenant_id", "conversation_id", "created_at"),
@@ -452,6 +454,7 @@ class Proposal(Timestamped, Base):
             ["conversations.tenant_id", "conversations.id"],
             ondelete="CASCADE",
         ),
+        UniqueConstraint("tenant_id", "id", name="uq_proposals_tenant_id"),
         UniqueConstraint("tenant_id", "idempotency_key", name="uq_proposals_tenant_idempotency"),
         Index("ix_proposals_tenant_status_created", "tenant_id", "status", "created_at"),
         Index("ix_proposals_tenant_conversation", "tenant_id", "conversation_id", "created_at"),
@@ -521,6 +524,7 @@ class CommercialOrder(Timestamped, Base):
             ["proposals.tenant_id", "proposals.id"],
             ondelete="RESTRICT",
         ),
+        UniqueConstraint("tenant_id", "id", name="uq_commercial_orders_tenant_id"),
         UniqueConstraint("tenant_id", "proposal_id", name="uq_commercial_orders_proposal"),
         UniqueConstraint(
             "tenant_id", "acceptance_idempotency_key", name="uq_commercial_orders_acceptance_key"
@@ -599,6 +603,7 @@ class Meeting(Timestamped, Base):
             ["conversations.tenant_id", "conversations.id"],
             ondelete="CASCADE",
         ),
+        UniqueConstraint("tenant_id", "id", name="uq_meetings_tenant_id"),
         UniqueConstraint("tenant_id", "idempotency_key", name="uq_meetings_tenant_idempotency"),
         UniqueConstraint("tenant_id", "provider", "external_event_id", name="uq_meetings_external"),
         Index("ix_meetings_tenant_start", "tenant_id", "starts_at"),
@@ -665,6 +670,7 @@ class ProspectResearch(Timestamped, Base):
     __tablename__ = "prospect_researches"
     __table_args__ = (
         ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
+        UniqueConstraint("tenant_id", "id", name="uq_prospect_researches_tenant_id"),
         UniqueConstraint("tenant_id", "source_fingerprint", name="uq_prospect_research_source"),
         UniqueConstraint("tenant_id", "idempotency_key", name="uq_prospect_research_idempotency"),
         Index("ix_prospect_research_tenant_status", "tenant_id", "status", "created_at"),
