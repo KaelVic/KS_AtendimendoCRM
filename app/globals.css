@@ -46,18 +46,18 @@
   --color-border: #e7e3da;
   --color-border-strong: #d2cdbf;
 
-  /* Accent — Sage (11 stops) */
-  --color-accent-50:  #f3f6f1;
-  --color-accent-100: #e4ebe0;
-  --color-accent-200: #c8d6c1;
-  --color-accent-300: #a4ba9a;
-  --color-accent-400: #82a077;
-  --color-accent-500: #67885d;
-  --color-accent-600: #506d48;
-  --color-accent-700: #41573b;
-  --color-accent-800: #374731;
-  --color-accent-900: #2f3c2b;
-  --color-accent-950: #171f15;
+  /* Accent — Purple (11 stops) */
+  --color-accent-50:  #faf7ff;
+  --color-accent-100: #f4eeff;
+  --color-accent-200: #e7daff;
+  --color-accent-300: #d3beff;
+  --color-accent-400: #b895ff;
+  --color-accent-500: #9962ff;
+  --color-accent-600: #7443F8;
+  --color-accent-700: #622ad8;
+  --color-accent-800: #5325b3;
+  --color-accent-900: #452192;
+  --color-accent-950: #2b1364;
   --color-accent: var(--color-accent-600);
   --color-accent-fg: #ffffff;
   --color-accent-soft: var(--color-accent-100);
@@ -343,20 +343,20 @@
   --color-border-strong: #444239;
 
   /* Accent stays same hex stops; default shifts up for dark contrast */
-  --color-accent-50:  #f3f6f1;
-  --color-accent-100: #e4ebe0;
-  --color-accent-200: #c8d6c1;
-  --color-accent-300: #a4ba9a;
-  --color-accent-400: #82a077;
-  --color-accent-500: #67885d;
-  --color-accent-600: #506d48;
-  --color-accent-700: #41573b;
-  --color-accent-800: #374731;
-  --color-accent-900: #2f3c2b;
-  --color-accent-950: #171f15;
+  --color-accent-50:  #faf7ff;
+  --color-accent-100: #f4eeff;
+  --color-accent-200: #e7daff;
+  --color-accent-300: #d3beff;
+  --color-accent-400: #b895ff;
+  --color-accent-500: #9962ff;
+  --color-accent-600: #7443F8;
+  --color-accent-700: #622ad8;
+  --color-accent-800: #5325b3;
+  --color-accent-900: #452192;
+  --color-accent-950: #2b1364;
   --color-accent: var(--color-accent-400);
   --color-accent-fg: #161510;
-  --color-accent-soft: rgba(130, 160, 119, 0.16);
+  --color-accent-soft: rgba(116, 67, 248, 0.16);
   --color-accent-hover: var(--color-accent-300);
 
   /* Neutrals — greige (11 stops, dark) */
@@ -532,7 +532,9 @@
   --color-card-foreground: var(--color-text);
 
   /* Tipografia */
-  --font-sans: var(--font-atkinson), ui-sans-serif, system-ui, -apple-system,
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-sora), var(--font-inter), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, sans-serif;
   --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco,
     Consolas, monospace;
@@ -678,7 +680,7 @@
     overflow-x: hidden;
     background-color: var(--color-bg);
     color: var(--color-text);
-    font-family: var(--font-atkinson), ui-sans-serif, system-ui, -apple-system,
+    font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
       "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
     -webkit-font-smoothing: antialiased;

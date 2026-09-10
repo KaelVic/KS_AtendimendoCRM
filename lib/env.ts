@@ -252,7 +252,7 @@ const schema = z.object({
    * endereço numa tela de suspensão manda o cliente do revendedor escrever
    * para quem não suspendeu a conta dele e não tem como resolvê-la.
    */
-  SUPPORT_EMAIL: z.string().optional().default(""),
+  SUPPORT_EMAIL: z.string().optional().default("kaelvictor.devsolution@gmail.com"),
 
   // EPIC-11 Impersonate cookie HMAC secret. Optional at boot (route returns
   // 503 at runtime if missing/short); required in prod for the feature to
@@ -318,7 +318,7 @@ const schema = z.object({
   // Sem prefixo NEXT_PUBLIC_ de propósito: essas seriam queimadas no bundle
   // durante o build da imagem, e o self-hoster roda uma imagem pré-buildada.
   // O <PublicEnvScript/> injeta os valores em runtime.
-  APP_NAME: z.string().optional().default(""),
+  APP_NAME: z.string().optional().default("KS Atendimento IA"),
   APP_LOGO_URL: z.string().optional().default(""),
   /**
    * Cor da marca — um hex (`#506d48`), do qual `lib/branding/` deriva a rampa
@@ -332,7 +332,7 @@ const schema = z.object({
    * `healthy` com 100% das requisições em 500. Uma var de COR não pode ter esse
    * poder; a validação do valor é do resolvedor, que degrada e diz o motivo.
    */
-  APP_ACCENT_HEX: z.string().optional().default(""),
+  APP_ACCENT_HEX: z.string().optional().default("#7443F8"),
 
   /**
    * Par VAPID do Web Push. Opcionais: sem elas a bandeja só funciona com a aba

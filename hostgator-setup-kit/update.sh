@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Atualiza o DeskcommCRM na VPS: código novo + banco + app — com BACKUP antes e
+# Atualiza o KS Atendimento IA na VPS: código novo + banco + app — com BACKUP antes e
 # CHECAGEM DE SAÚDE depois. Um comando só, pensado pra quem não é técnico:
 #
 #   bash hostgator-setup-kit/update.sh
@@ -194,7 +194,7 @@ fi
 # configurou à mão está certo, e ler "seus e-mails estão quebrados" numa
 # atualização que correu bem seria alarme falso na cara de quem fez tudo certo.
 AVISO_SITE_URL=""
-MARCA_AVISO_SITE_URL="$PROJECT_DIR/.deskcomm-site-url-avisado"
+MARCA_AVISO_SITE_URL="$PROJECT_DIR/.ks_atendimentocrm-site-url-avisado"
 if [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
   bash "$KIT_DIR/marca-emails.sh" --projeto "$PROJECT_DIR" || true
   : > "$MARCA_AVISO_SITE_URL" 2>/dev/null || true   # o passo automático rodou
