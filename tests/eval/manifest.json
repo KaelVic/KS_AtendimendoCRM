@@ -1,9 +1,0 @@
-{
-  "dataset": "ks-agent-eval",
-  "version": "v1",
-  "dev_cases": 24,
-  "holdout_cases": 6,
-  "dev_sha256": "7a22b0216ef3e8de441f0b3ce9770e5186c23aa2248117353d5b11f5a242bfe1",
-  "holdout_sha256": "dd257641af71d200dfd12606cb84d529fef106d22d82120e38b45a0d4b2e7780",
-  "holdout_policy": "never tune prompts with holdout; create a new dataset version for changes"
-}

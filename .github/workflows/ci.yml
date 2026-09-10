@@ -1,114 +1,85 @@
-name: CI — KS Atendimento IA
+name: ci
 
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# O GITHUB_TOKEN destes jobs serve a `actions/checkout` (clone) e a
+# `actions/setup-node` (manifest de `actions/node-versions`, repo público) —
+# `contents: read` cobre os dois, que é o escopo que o próprio modelo de dados do
+# CodeQL prescreve para essas duas actions. O `cache: pnpm` NÃO usa este token
+# (usa ACTIONS_RUNTIME_TOKEN), `pnpm/action-setup` não tem input de token, e
+# nenhum passo `run:` enxerga o token — ele só entra no ambiente via
+# `secrets.GITHUB_TOKEN`, que não aparece em nenhum destes workflows.
+#
+# No topo, e não por job, porque os dois jobs precisam do mesmo escopo e job
+# acrescentado depois nasce restrito em vez de herdar o default do repositório.
+# Esse default hoje é `read` (medido em actions/permissions/workflow), então isto
+# não corrige vazamento em vigor: tira a garantia de uma configuração que muda
+# fora do repo, num clique, sem PR e sem deixar rastro aqui. `packages: write`
+# continua por job em publish-image.yml — mesma regra, menor escopo que precisa.
 permissions:
   contents: read
 
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
 jobs:
-  validate-and-test:
+  verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: ks_user
-          POSTGRES_PASSWORD: ks_secure_local_dev_password
-          POSTGRES_DB: ks_atendimento
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
-
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
-
+    timeout-minutes: 15
     steps:
-      - name: Checkout Código
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@v7
 
-      - name: Configurar Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
-        with:
-          python-version: '3.12'
-          cache: 'pip'
+      - uses: ./.github/actions/preparar-node
+        # O teto do preâmbulo mora aqui porque passo de composite action não
+        # aceita `timeout-minutes`. Razão e medições: o cabeçalho da action.
+        timeout-minutes: 5
 
-      - name: Instalar Dependências Python
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r apps/api/requirements.txt
-          pip install -r apps/worker/requirements.txt
-          pip install -r services/scrapegraph/requirements.txt
-          pip install ruff mypy pytest-asyncio
+      - name: Typecheck
+        run: pnpm typecheck
 
-      - name: Preparar Arquivo de Ambiente de Teste
-        run: cp .env.example .env
+      - name: Lint
+        run: pnpm lint
 
-      - name: Lint com Ruff
-        run: ruff check apps/api
+      # Invariante 1 de docs/doctrine/restricao-de-canal.md: nenhuma feature
+      # nomeia um provider. Step próprio (e não só dentro de `gov:verify`)
+      # porque é o CI que gateia PR — `gov:verify` não é invocado por nenhum
+      # workflow, e mecanismo que não roda no gate não protege nada.
+      - name: Channel provider leak
+        run: pnpm lint:channels
 
-      - name: Typecheck Python e migração baseline
-        run: |
-          mypy apps/api/src
-          alembic -c apps/api/alembic.ini upgrade head --sql > /tmp/ks-migration.sql
+      - name: Unit tests
+        run: pnpm test:unit
 
-      - name: Typecheck e build web
-        working-directory: apps/web
-        run: |
-          npm ci
-          npm run lint
-          npm run build
-          npx tsc --noEmit
 
-      - name: Executar suíte e E2E fake
-        run: pytest -q tests apps/api/tests apps/worker/tests services/scrapegraph/tests tests/e2e
+      # Scripts do kit self-host num repo git descartável (docker/crontab
+      # dublados). É o único gate que exercita o update.sh — um erro aqui
+      # rebobina a instalação de quem hospeda, e nenhum teste TS o veria.
+      #
+      # Desde 2026-08-08 inclui `hostgator-setup-kit/test-validators.sh`, os 163
+      # casos que cobrem o install.sh. Eles existiam e NÃO rodavam em job nenhum
+      # (issue #191): dois defeitos que tornavam a instalação impossível —
+      # escolher OpenRouter travava o instalador num laço, escolher OpenAI
+      # deixava o .env pela metade — passaram por todos os checks verdes. 15s.
+      - name: Kit self-host (bash)
+        run: pnpm test:shell
 
-      - name: Publicar evidências E2E
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: e2e-evidence
-          path: test-results/e2e/
-          if-no-files-found: ignore
-
-  container-build:
+  # Gate de isolamento multi-tenant + invariantes de governança.
+  # Job separado de propósito: roda em paralelo ao verify (não atrasa o feedback
+  # rápido) e vira um check nomeado, que é o que a doutrina de RLS exige provar.
+  # scripts/test-db.sh sobe pgvector/pgvector:pg17, aplica supabase/baseline.sql
+  # em modo install (ON_ERROR_STOP=1) e update (idempotência), e roda
+  # tests/invariants/** contra ele. Invocar via `pnpm test:db` é o que põe
+  # node_modules/.bin no PATH que o script herda para chamar `vitest`.
+  invariants:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    needs: validate-and-test
-    permissions:
-      contents: read
+    timeout-minutes: 20
     steps:
-      - name: Checkout Código
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@v7
 
-      - name: Preparar configuração segura de Compose
-        shell: bash
-        run: |
-          cp .env.example .env
-          printf '\nPUBLIC_DOMAIN=ci.invalid\nPOSTGRES_PASSWORD=ci-only-password\n' >> .env
-          chmod 600 .env
+      - uses: ./.github/actions/preparar-node
+        # O teto do preâmbulo mora aqui porque passo de composite action não
+        # aceita `timeout-minutes`. Razão e medições: o cabeçalho da action.
+        timeout-minutes: 5
 
-      - name: Validar Compose essencial
-        run: docker compose config --quiet
-
-      - name: Validar profile OpenWA sem iniciar sessão
-        run: docker compose --profile openwa config --quiet
-
-      - name: Construir imagens da aplicação
-        run: docker compose build api worker scrapegraph web
+      - name: RLS isolation + governance invariants
+        run: pnpm test:db

@@ -1,17 +1,17 @@
+# Reduz o contexto de build e — crítico — mantém segredos fora da imagem.
+# Sem isto o `next build` carregaria .env.local e embutiria/vazaria segredos.
+node_modules
+.next
+.git
 .env
 .env.*
-!.env.example
-.git
-.gitignore
-**/.pytest_cache
-**/.mypy_cache
-**/.ruff_cache
-**/__pycache__
-node_modules
 test-results
-graphify-out
-var
-*.pem
-*.key
-*.crt
-secrets
+tests
+playwright.config.ts
+*.png
+*.log
+.lina
+docs
+tasks
+scratchpad
+.vercel

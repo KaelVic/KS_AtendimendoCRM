@@ -1,260 +1,89 @@
+# Stack local de dependências externas para o DeskcommCRM.
+#
+# Sobe apenas o WAHA (Plus / NOWEB) pra desenvolvimento. Postgres + Auth + Storage
+# vêm do Supabase Cloud (ou supabase local CLI separadamente, conforme o time preferir).
+#
+# Uso:
+#   1. Copie .env.example -> .env.local e preencha WAHA_API_KEY (plaintext)
+#   2. Gere o hash: echo -n "$WAHA_API_KEY" | shasum -a 512 | awk '{print $1}'
+#   3. Cole esse hash em WAHA_API_KEY abaixo (NÃO o plaintext)
+#   4. docker compose up -d
+#   5. Acesse http://localhost:3030/dashboard/ (UI do WAHA Plus)
+#      (host port 3030 — :3000 fica reservado pra outros dev tools como Remotion)
+#
+# Em prod, WAHA roda em VPS dedicada (Hostgator) atrás de Nginx (proxy_buffering off
+# pra SSE). docker-compose aqui é DEV ONLY.
+
+version: "3.9"
+
 services:
-  # ---------------------------------------------------------------------------
-  # Banco de Dados Transacional (PostgreSQL) — ADR-002
-  # ---------------------------------------------------------------------------
-  postgres:
-    profiles:
-      - local-db
-    image: postgres:16-alpine
-    container_name: ks_postgres
+  waha:
+    image: devlikeapro/waha:noweb
+    platform: linux/amd64
+    container_name: deskcomm-waha
     restart: unless-stopped
+    ports:
+      - "3030:3000"
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-ks_user}
-      # Empty values fail closed in the PostgreSQL image; production uses Supabase.
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
-      POSTGRES_DB: ${POSTGRES_DB:-ks_atendimento}
+      # Hash SHA512 hex da api key (NÃO plaintext). Cliente envia plaintext em X-Api-Key.
+      WAHA_API_KEY: ${WAHA_API_KEY_SHA512}
+      # Webhook base URL — precisa ser pública (use ngrok/cloudflared em dev).
+      # host.docker.internal: o app Next roda no HOST em dev — localhost dentro do
+      # container seria o próprio WAHA e o webhook nunca chegaria. Porta 3002:
+      # a stack da fusão é isolada do checkout principal (3001 é do gov-loop).
+      WHATSAPP_HOOK_URL: ${WAHA_HOOK_BASE_URL:-http://host.docker.internal:3003}/api/v1/webhooks/waha
+      WHATSAPP_HOOK_EVENTS: "message.any,message.ack,message.edited,message.revoked,session.status,state.change"
+      # HMAC SHA512 do payload, validado server-side via crypto.timingSafeEqual.
+      WHATSAPP_HOOK_HMAC: ${WAHA_HMAC_SECRET}
+      # Engine NOWEB por default (mais leve, ~150MB; estável). O env é
+      # WHATSAPP_DEFAULT_ENGINE — WAHA_DEFAULT_ENGINE NÃO existe no WAHA e caía
+      # silenciosamente no default WEBJS (browser, trava a sessão).
+      WHATSAPP_DEFAULT_ENGINE: NOWEB
+      # Storage de mídia: Supabase Storage via Backend (NÃO inline base64).
+      WAHA_DASHBOARD_ENABLED: "true"
+      # Sem isto o container volta (ou o Docker Desktop acorda) e as sessões
+      # ficam STOPPED — o front abre em "Conectando…" e as mensagens do período
+      # fora não chegam. True retoma as que já existiam; não pede QR de novo.
+      WHATSAPP_RESTART_ALL_SESSIONS: "${WHATSAPP_RESTART_ALL_SESSIONS:-True}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
-      - pgdata:/var/lib/postgresql/data
-    ports:
-      - "127.0.0.1:${POSTGRES_HOST_PORT:-5434}:5432"
-    networks:
-      - ks-internal
+      - waha-data:/app/.sessions
+      - waha-media:/app/.media
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ks_user} -d ${POSTGRES_DB:-ks_atendimento}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  # ---------------------------------------------------------------------------
-  # Estado Efêmero, Debounce e Filas (Redis) — ADR-003
-  # ---------------------------------------------------------------------------
-  redis:
-    image: redis:7-alpine
-    container_name: ks_redis
-    restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
-    volumes:
-      - redisdata:/data
-    ports:
-      - "127.0.0.1:${REDIS_HOST_PORT:-6380}:6379"
-    networks:
-      - ks-internal
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  # ---------------------------------------------------------------------------
-  # API Backend Modular (FastAPI) — ADR-001
-  # ---------------------------------------------------------------------------
-  api:
-    build:
-      context: ./apps/api
-      dockerfile: Dockerfile
-    container_name: ks_api
-    restart: unless-stopped
-    env_file:
-      - path: .env
-        required: false
-    environment:
-      POSTGRES_HOST: postgres
-      REDIS_HOST: redis
-      OPENWA_SERVER_URL: http://openwa:2785
-    ports:
-      - "8000:8000"
-    depends_on:
-      redis:
-        condition: service_healthy
-    networks:
-      - ks-internal
-      - ks-openwa
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/health/live || exit 1"]
-      interval: 10s
+      # /ping é o único endpoint sem auth desta build (api/health = 401/404).
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/ping"]
+      interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 30s
 
-  # ---------------------------------------------------------------------------
-  # Worker Assíncrono (Python / Redis)
-  # ---------------------------------------------------------------------------
+  # Worker 24/7 do agent-engine (fusão Vendaval): fila, cron/follow-up, drain do
+  # event_log e turnos do agente rico. Postgres = Supabase (SUPABASE_DB_URL no
+  # .env.local). Sobe junto do WAHA: `docker compose up -d`.
   worker:
     build:
       context: .
-      dockerfile: apps/worker/Dockerfile
-    container_name: ks_worker
+      dockerfile: Dockerfile.worker
+    container_name: deskcomm-agent-worker
     restart: unless-stopped
     env_file:
-      - path: .env
-        required: false
+      - .env
+      - .env.local
     environment:
-      REDIS_HOST: redis
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
-      POSTGRES_HOST: postgres
-    depends_on:
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "python -c \"import asyncio, os, redis.asyncio as r; raise SystemExit(0 if asyncio.run(r.from_url(os.environ['REDIS_URL']).exists('worker:heartbeat')) else 1)\""]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    networks:
-      - ks-internal
-
-  # ---------------------------------------------------------------------------
-  # Prospecção Isolada (ScrapeGraphAI) — ADR-007
-  # ---------------------------------------------------------------------------
-  scrapegraph:
-    build:
-      context: ./services/scrapegraph
-      dockerfile: Dockerfile
-    container_name: ks_scrapegraph
-    restart: unless-stopped
-    environment:
-      SCRAPEGRAPH_SERVICE_TOKEN: ${SCRAPEGRAPH_SERVICE_TOKEN:-}
-      SCRAPEGRAPH_MAX_PAGE_BYTES: ${SCRAPEGRAPH_MAX_PAGE_BYTES:-1048576}
-      SCRAPEGRAPH_MAX_REDIRECTS: ${SCRAPEGRAPH_MAX_REDIRECTS:-3}
-      SCRAPEGRAPH_TIMEOUT_SECONDS: ${SCRAPEGRAPH_TIMEOUT_SECONDS:-10}
-      SCRAPEGRAPH_DOMAIN_LIMIT: ${SCRAPEGRAPH_DOMAIN_LIMIT:-10}
-      SCRAPEGRAPH_DOMAIN_WINDOW_SECONDS: ${SCRAPEGRAPH_DOMAIN_WINDOW_SECONDS:-60}
-      SCRAPEGRAPH_LLM_PROVIDER: ${SCRAPEGRAPH_LLM_PROVIDER:-fake}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-1.5-flash}
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081/health', timeout=2)"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    networks:
-      - ks-internal
-
-  # ---------------------------------------------------------------------------
-  # Frontend CRM / Dashboard (Next.js)
-  # ---------------------------------------------------------------------------
-  web:
-    build:
-      context: ./apps/web
-      dockerfile: Dockerfile
-    container_name: ks_web
-    restart: unless-stopped
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
-      PORT: 3000
-      HOSTNAME: 0.0.0.0
+      # dentro do container, localhost é o próprio worker — o WAHA está na rede
+      # do compose (serviço waha, porta interna 3000). Sobrepõe o .env.local.
+      WAHA_API_BASE_URL: http://waha:3000
     ports:
-      - "3000:3000"
-    depends_on:
-      api:
-        condition: service_healthy
+      - "8787:8787"
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:3000').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
-      interval: 10s
+      # 127.0.0.1 explícito: localhost resolve p/ ::1 e o healthz escuta só IPv4.
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:8787/healthz"]
+      interval: 30s
       timeout: 5s
       retries: 3
-    networks:
-      - ks-internal
-
-  # ---------------------------------------------------------------------------
-  # Gateway WhatsApp OpenWA (v0.23.3 fixada) — ADR-009 / Profile opcional
-  # IMPORTANTE: Sem portas mapeadas no host; acessível unicamente na rede interna.
-  # ---------------------------------------------------------------------------
-  openwa:
-    profiles:
-      - openwa
-    image: ghcr.io/rmyndharis/openwa:0.23.3@sha256:c00b5b589446ce7dd6177f1b871789284bcfbe3612189ba109465025eb0ad4ec
-    container_name: ks_openwa
-    restart: unless-stopped
-    # The gateway is an internal transport boundary, not a public service.
-    # Keep its root filesystem immutable; only the private session volume and
-    # the temporary browser workspace are writable.
-    read_only: true
-    tmpfs:
-      - /tmp:size=128m,noexec,nosuid,nodev
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    # Required only by the upstream entrypoint to prepare /app/data and drop
-    # privileges before starting Node/Chromium. The application keeps no
-    # effective capabilities after bootstrap.
-    cap_add:
-      - CHOWN
-      - DAC_OVERRIDE
-      - FOWNER
-      - SETGID
-      - SETUID
-    pids_limit: 512
-    mem_limit: 1g
-    shm_size: 128m
-    logging:
-      driver: json-file
-      options:
-        max-size: 10m
-        max-file: "5"
-    environment:
-      AUTHENTICATION_TIMEOUT: 60
-      AUTO_REFRESH: "false"
-      AUTO_RESPONSES_ENABLED: "false"
-      LOG_LEVEL: ${OPENWA_LOG_LEVEL:-error}
-      HEADLESS: "true"
-      POPUP: "false"
-      # OpenWA security controls. Values are injected from the local secret
-      # store; no secret is committed to this repository.
-      API_KEY: ${OPENWA_API_KEY:-}
-      API_MASTER_KEY: ${OPENWA_API_MASTER_KEY:-}
-      API_KEY_PEPPER: ${OPENWA_API_KEY_PEPPER:-}
-      API_KEY_ROLE: ${OPENWA_API_KEY_ROLE:-operator}
-      SESSION_ID: ${OPENWA_SESSION_ID:-kaelsolutions_pilot}
-      ALLOWED_SESSIONS: ${OPENWA_ALLOWED_SESSIONS:-kaelsolutions_pilot}
-      ALLOWED_IPS: ${OPENWA_ALLOWED_IPS:-172.30.0.0/24}
-      WEBHOOK_SECRET: ${OPENWA_WEBHOOK_SECRET:-}
-      ENABLE_SWAGGER: "false"
-      SERVE_DASHBOARD: "false"
-      ALLOW_UNSIGNED_INGRESS: "false"
-      MCP_ENABLED: "false"
-      PLUGINS_ENABLED: "false"
-      PLUGINS_DIR: /tmp/openwa-plugins
-      PLUGIN_STATE_DIR: /tmp/openwa-plugin-state
-      PLUGIN_INSTALL_REQUIRE_PIN: "true"
-      PLUGIN_DOWNLOAD_ALLOW_INSECURE_REDIRECTS: "false"
-      BODY_SIZE_LIMIT: ${OPENWA_BODY_SIZE_LIMIT:-25mb}
-      INFLIGHT_BODY_BUDGET_BYTES: ${OPENWA_INFLIGHT_BODY_BUDGET_BYTES:-104857600}
-      WEBHOOK_MAX_PAYLOAD_BYTES: ${OPENWA_WEBHOOK_MAX_PAYLOAD_BYTES:-1048576}
-      WEBHOOK_MAX_PER_SESSION: ${OPENWA_WEBHOOK_MAX_PER_SESSION:-16}
-      WEBHOOK_DISPATCH_CONCURRENCY: ${OPENWA_WEBHOOK_DISPATCH_CONCURRENCY:-4}
-      RATE_LIMIT_SHORT_TTL: ${OPENWA_RATE_LIMIT_SHORT_TTL:-1000}
-      RATE_LIMIT_SHORT_LIMIT: ${OPENWA_RATE_LIMIT_SHORT_LIMIT:-10}
-      RATE_LIMIT_MEDIUM_TTL: ${OPENWA_RATE_LIMIT_MEDIUM_TTL:-60000}
-      RATE_LIMIT_MEDIUM_LIMIT: ${OPENWA_RATE_LIMIT_MEDIUM_LIMIT:-100}
-      RATE_LIMIT_LONG_TTL: ${OPENWA_RATE_LIMIT_LONG_TTL:-3600000}
-      RATE_LIMIT_LONG_LIMIT: ${OPENWA_RATE_LIMIT_LONG_LIMIT:-1000}
-      WS_RATE_LIMIT_FRAME_PER_SECOND: ${OPENWA_WS_RATE_LIMIT_FRAME_PER_SECOND:-60}
-      WS_RATE_LIMIT_FRAME_BURST: ${OPENWA_WS_RATE_LIMIT_FRAME_BURST:-120}
-      WS_RATE_LIMIT_HANDSHAKE_MAX: ${OPENWA_WS_RATE_LIMIT_HANDSHAKE_MAX:-10}
-      WS_RATE_LIMIT_HANDSHAKE_WINDOW_MS: ${OPENWA_WS_RATE_LIMIT_HANDSHAKE_WINDOW_MS:-60000}
-      WS_MAX_SOCKETS_PER_KEY: ${OPENWA_WS_MAX_SOCKETS_PER_KEY:-16}
-    volumes:
-      - openwa_sessions:/app/data
-    networks:
-      - ks-openwa
+      start_period: 20s
 
 volumes:
-  pgdata:
-  redisdata:
-  openwa_sessions:
-    name: ks_openwa_sessions
-
-networks:
-  ks-internal:
-    driver: bridge
-  # Only the API and the gateway join this internal-only network. PostgreSQL,
-  # Redis, web and ScrapeGraph remain on ks-internal and are not reachable by
-  # OpenWA. This is the namespace boundary for the transport adapter.
-  ks-openwa:
-    name: ks_openwa
-    internal: true
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.30.0.0/24
+  waha-data:
+  waha-media:
