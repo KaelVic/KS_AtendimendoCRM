@@ -63,7 +63,11 @@ test.describe("QA — as telas da W4 que ninguém abria", () => {
     fs.mkdirSync(SAIDA, { recursive: true });
     await login(page);
 
+    const templatesPromise = page.waitForResponse(
+      (r) => r.url().includes("/api/v1/message-templates") && r.status() === 200,
+    );
     await page.goto(`${APP_URL}/app/templates`);
+    await templatesPromise;
     await page.waitForLoadState("networkidle");
     await radiografia(page, "/app/templates");
     await page.screenshot({ path: path.join(SAIDA, "qa-tela-templates.png"), fullPage: true });
@@ -72,6 +76,7 @@ test.describe("QA — as telas da W4 que ninguém abria", () => {
     const criar = page
       .getByRole("button", { name: /nov[ao]|criar|adicionar/i })
       .first();
+    await expect(criar).toBeVisible({ timeout: 15_000 });
     const temBotao = (await criar.count()) > 0;
     console.info(`[QA] /app/templates · dá para criar pela tela? ${temBotao ? "SIM" : "NÃO"}`);
     expect(temBotao, "sem caminho de criação, a tela nasce vazia e sem saída").toBe(true);
