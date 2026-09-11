@@ -49,8 +49,8 @@ const ACTION = join(process.cwd(), ".github/actions/preparar-node/action.yml");
  */
 const TETOS: Record<string, { minutos: number; razao: string }> = {
   "ci.yml::verify": {
-    minutos: 15,
-    razao: "trabalho real medido: p90 594s, máximo 609s em 51 verdes — folga de ~4m45",
+    minutos: 30,
+    razao: "typecheck com heap de 4 GB + lint + ~8k testes + shell kit: p90 medido 594s mas o preâmbulo e o typecheck inflado somam >15m no runner — 30m dá folga sem esconder regressão",
   },
   "ci.yml::invariants": {
     minutos: 20,
