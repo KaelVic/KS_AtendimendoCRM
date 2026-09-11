@@ -1,4 +1,4 @@
-# Contributing — DeskcommCRM
+# Contributing — KS Atendimento IA
 
 ## Antes de começar
 

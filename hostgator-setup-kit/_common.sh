@@ -433,7 +433,7 @@ psql_run() { docker run --rm -i postgres:17-alpine psql "$(url_do_schema)" -v ON
 # `docker-compose.prod.yml`, `.env.hostgator.example` e a matriz de
 # `publish-image.yml` digam o mesmo. Se você é um fork, é lá que está a lista do
 # que trocar junto.
-IMG_NS="ghcr.io/KaelVic"
+IMG_NS="ghcr.io/kaelvic"
 IMG_APP="${IMG_NS}/ks_atendimentocrm"
 IMG_WORKER="${IMG_NS}/ks_atendimentocrm-worker"
 IMG_SCHEDULER="${IMG_NS}/ks_atendimentocrm-scheduler"

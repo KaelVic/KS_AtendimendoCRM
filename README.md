@@ -22,23 +22,17 @@
 
 > ### ☁️ Rode este CRM em produção com 1 comando
 >
-> O KS Atendimento IA foi desenvolvido em **parceria com a HostGator**: o [`hostgator-setup-kit/`](hostgator-setup-kit/)
-> instala o CRM completo (app + WhatsApp + banco) numa VPS com um único comando, e o
-> [runbook de produção](docs/runbooks/waha-hostgator.md) já assume esse ambiente.
+> O [`hostgator-setup-kit/`](hostgator-setup-kit/) instala o CRM completo (app + WhatsApp + banco) numa VPS com um único comando, e o [runbook de produção](docs/runbooks/waha-hostgator.md) já assume esse ambiente.
 >
-> **[👉 Assinar a VPS HostGator com desconto da parceria](https://www.hostgator.com.br/52708-141-3-52.html)** —
-> datacenter em São Paulo, ideal pro WhatsApp rodando 24/7. *(link de parceiro — assinar por ele apoia o projeto e sai mais barato)*
+> Recomendamos uma **VPS com Docker e no mínimo 4 GB de RAM** (HostGator, Hostinger, Hetzner ou o provedor de sua preferência).
 >
-> **Ainda não tem servidor?** Rode isto **no seu computador** (macOS, Linux ou WSL). Ele diz
-> qual plano contratar — com os números do runbook, não um "depende" — e te devolve o
-> comando certo pro seu caso:
+> **Ainda não tem servidor?** Rode isto **no seu computador** (macOS, Linux ou WSL). Ele te devolve o comando certo pro seu caso:
 >
 > ```bash
 > curl -fsSL https://raw.githubusercontent.com/KaelVic/KS_AtendimendoCRM/main/hostgator-setup-kit/comecar.sh | bash
 > ```
 >
-> *(prefere ler antes de executar? clone o repo e rode `bash hostgator-setup-kit/comecar.sh` —
-> ele não instala nada sem você confirmar.)*
+> *(prefere ler antes de executar? clone o repo e rode `bash hostgator-setup-kit/comecar.sh` — ele não instala nada sem você confirmar.)*
 
 ---
 
@@ -68,7 +62,7 @@ Já dentro da VPS:
 
 ```bash
 git clone https://github.com/KaelVic/KS_AtendimendoCRM.git
-cd KS Atendimento IA
+cd KS_AtendimendoCRM
 bash hostgator-setup-kit/install.sh
 ```
 
@@ -79,7 +73,7 @@ Se faltar Docker, o instalador pergunta e instala sozinho.
 
 | Item | Onde conseguir |
 |---|---|
-| **VPS com Docker** | [HostGator](https://www.hostgator.com.br/52708-141-3-52.html) (parceria) — ou qualquer VPS com Docker. 4 GB de RAM recomendados |
+| **VPS com Docker** | HostGator, Hostinger, Hetzner ou qualquer VPS com Docker. 4 GB de RAM recomendados |
 | **Domínio** | Um registro **A** apontando pro IP da VPS (ex.: `crm.suaempresa.com.br`) |
 | **Banco** | Conta grátis no [supabase.com](https://supabase.com) — 3 chaves + connection string do **Session pooler** |
 | **IA** | Uma chave de **OpenRouter**, **Anthropic** ou **OpenAI** — o instalador pergunta qual você quer |
@@ -151,7 +145,7 @@ volta no `.env` — sem isso, o próximo restart traria o app quebrado de novo, 
 ### Pelo terminal
 
 ```bash
-cd /caminho/do/KS Atendimento IA
+cd /caminho/do/KS_AtendimendoCRM
 bash hostgator-setup-kit/update.sh
 ```
 
@@ -199,9 +193,9 @@ Passo a passo em linguagem simples: [`docs/ATUALIZANDO.md`](docs/ATUALIZANDO.md)
 
 ## ✨ O que é
 
-**KS Atendimento IA** vem de **Desk** (mesa) + **comm** (comércio): **o comercial de mesa** — toda a operação de vendas do seu negócio numa mesa só, operada por pessoas e agentes de IA juntos.
+**KS Atendimento IA** é a plataforma da KaelSolutions para centralizar CRM, atendimento por WhatsApp e agentes de inteligência artificial em uma única operação.
 
-O projeto nasceu como CRM de e-commerce e a comunidade o levou muito além: hoje roda em **clínicas, imobiliárias, infoprodutos, agências, lojas e prestadores de serviço** — qualquer negócio que vende pelo WhatsApp. O produto acompanhou essa virada e virou um **sistema operacional de vendas**: agentes de IA com RAG por tenant atendem, qualificam, movem leads no funil, disparam automações e sabem a hora de passar pra um humano — com o CRM inteiro exposto via **MCP** pros agentes operarem de verdade. A história completa está em [`VISION.md`](VISION.md).
+O projeto roda em **clínicas, imobiliárias, infoprodutos, agências, lojas e prestadores de serviço** — qualquer negócio que vende pelo WhatsApp. É um **sistema operacional de vendas**: agentes de IA com RAG por tenant atendem, qualificam, movem leads no funil, disparam automações e sabem a hora de passar pra um humano — com o CRM inteiro exposto via **MCP** pros agentes operarem de verdade. A história completa está em [`VISION.md`](VISION.md).
 
 ### Diferenciais
 
@@ -256,7 +250,7 @@ Toda tela tem porta na navegação — o CI reprova tela que existe mas em que s
 | **AI** | Vercel AI SDK v7 — OpenRouter, Anthropic, OpenAI e Google | Instalador pergunta qual; troca depois pela tela |
 | **Validação** | Zod | Input externo, env, payloads |
 | **Observability** | Sentry (scrub em erro, transação, span e breadcrumb) | Telemetria opt-in no install |
-| **Hospedagem** | VPS com Docker (HostGator/SP na parceria) | App + WhatsApp + workers na sua máquina |
+| **Hospedagem** | VPS com Docker (HostGator, Hostinger, Hetzner, etc.) | App + WhatsApp + workers na sua máquina |
 
 Detalhes: [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
@@ -269,7 +263,7 @@ Detalhes: [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ```bash
 git clone https://github.com/KaelVic/KS_AtendimendoCRM.git
-cd KS Atendimento IA
+cd KS_AtendimendoCRM
 
 nvm use                     # Node 22
 npm install -g pnpm && pnpm install
@@ -305,7 +299,7 @@ App: <http://localhost:3000> · Health check: <http://localhost:3000/api/v1/heal
 ## 📁 Estrutura
 
 ```
-KS Atendimento IA/
+KS_AtendimendoCRM/
 ├── app/                    # Next.js App Router
 │   ├── (admin)/            # Rotas super-admin (impersonate, tenants)
 │   ├── (public)/           # Login, recovery
@@ -493,7 +487,7 @@ Este é um projeto **self-host**: cada pessoa roda o CRM na **própria infraestr
 
 - **WAHA** ([devlikeapro](https://waha.devlikeapro.com/)) — engine WhatsApp.
 - **Supabase** — Postgres + Auth + Storage + Realtime numa stack só.
-- **HostGator** — parceria de infraestrutura que tornou o self-host de 1 comando possível.
+- **Docker & VPS** — base de infraestrutura que torna o self-host de 1 comando possível.
 - **Anthropic**, **OpenAI** e **OpenRouter** — os provedores de IA que o CRM sabe usar.
 - **shadcn/ui** — base de componentes.
 - A comunidade que nos levou do e-commerce pra clínicas, imobiliárias, infoprodutos e além — vocês definiram o que este projeto é.
