@@ -294,6 +294,9 @@ test.describe("o idioma escolhido chega à tela", () => {
     for (const tela of TELAS) {
       await page.goto(tela);
       await page.waitForLoadState("networkidle", { timeout: PRAZO });
+      if (tela === "/app/inbox") {
+        await expect(page.getByRole("combobox", { name: /Filtrar por número/i })).toBeVisible({ timeout: PRAZO });
+      }
       antes.set(tela, await textosVisiveis(page));
     }
 
@@ -409,6 +412,9 @@ test.describe("o idioma escolhido chega à tela", () => {
     for (const tela of TELAS) {
       await page.goto(tela);
       await page.waitForLoadState("networkidle", { timeout: PRAZO });
+      if (tela === "/app/inbox") {
+        await expect(page.getByRole("combobox", { name: /Filtrar por número/i })).toBeVisible({ timeout: PRAZO });
+      }
       // `poll`, e não uma leitura única: `networkidle` diz que a REDE parou, não
       // que a árvore terminou de montar. Medido — uma leitura única pegou
       // /app/contacts com 6 rótulos onde o retrato inicial tinha 39, porque a
