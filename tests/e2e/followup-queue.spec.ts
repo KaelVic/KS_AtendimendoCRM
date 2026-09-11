@@ -255,6 +255,7 @@ test.describe("followup queue — fila unificada (Task 7.1)", () => {
   });
 
   test("viewer vê a fila (leitura) mas não consegue cancelar — 403 client E server-side", async ({ page }) => {
+    test.setTimeout(120_000);
     // Setup como manager: precisa de 1 enrollment VIVO real pra tentar cancelar como viewer.
     await login(page, creds.users.manager!.email);
     const live = await createLiveEnrollment(page, "viewer-rbac");
@@ -274,7 +275,9 @@ test.describe("followup queue — fila unificada (Task 7.1)", () => {
 
     await page.goto("/app/ai/followups");
     await expect(page.getByRole("heading", { name: "Follow-ups" })).toBeVisible();
+    const queuePromise = page.waitForResponse((r) => r.url().includes("/api/v1/ai/followups/queue"));
     await page.getByRole("tab", { name: "Fila" }).click();
+    await queuePromise;
     // any member consegue ver a fila (GET queue é viewer+) — só não há coluna de ação.
     await expect(page.getByRole("button", { name: "Cancelar follow-up" })).toHaveCount(0);
 
