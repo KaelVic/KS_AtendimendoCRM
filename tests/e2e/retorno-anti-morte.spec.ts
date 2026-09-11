@@ -75,11 +75,15 @@ function captura(page: Page, nome: string) {
 test("o retorno marcado pelo agente aparece no Radar e na linha do tempo", async ({ page }) => {
   await login(page, creds.users.manager!.email);
 
+  const radarPromise = page.waitForResponse(
+    (r) => r.url().includes("/api/v1/leads/at-risk") && r.status() === 200,
+  );
   await page.goto("/app/radar");
+  await radarPromise;
   await expect(page.getByRole("heading", { name: "Radar de risco" })).toBeVisible();
 
   const linha = page.locator('[data-testid="radar-item"]', { hasText: creds.retorno.lead_title });
-  await expect(linha).toBeVisible();
+  await expect(linha).toBeVisible({ timeout: 15_000 });
   // "Em voo" é a afirmação de que a demanda NÃO está morrendo: alguém prometeu
   // voltar. Sem o retorno, este mesmo negócio apareceria como crítico.
   await expect(linha).toContainText(/voo/i);

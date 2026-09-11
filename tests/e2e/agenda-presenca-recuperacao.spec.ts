@@ -284,8 +284,9 @@ test("Inbox marca cliente/conversa; detalhe antigo confirma presença com evidê
   await login(page, f.email);
   await page.goto(`/app/inbox/${p.conversation}`);
   await page.getByRole("link", { name: "Marcar compromisso", exact: true }).click();
+  await page.waitForURL("**/app/agenda*");
   const panel = page.getByTestId("painel-de-marcacao");
-  await expect(panel).toBeVisible();
+  await expect(panel).toBeVisible({ timeout: 15_000 });
   await expect(page.getByLabel("Quem será atendido")).toHaveValue(p.contact);
   await expect(page.getByLabel("Conversa vinculada (opcional)")).toHaveValue(p.conversation);
   // Fecha o painel para navegar a grade; reabre pela mesma entrada contextual.

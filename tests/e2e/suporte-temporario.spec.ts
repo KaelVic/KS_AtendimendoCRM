@@ -137,7 +137,12 @@ test("suporte mantém identidade, opera B e encerra sem misturar A; readonly/exp
   await other.reload();await expect(other.getByTestId("tenant-switcher")).toContainText(`Suporte A ${suffix}`);
   const members=await db.from("user_organizations").select("id").eq("organization_id",orgs[1]).eq("user_id",actor);expect(members.data).toEqual([]);
   await page.goto(`/app/contacts/${contacts[1]}`);await page.getByRole("button",{name:"Editar",exact:true}).click();
-  await page.getByLabel("Nome",{exact:true}).fill(`Editado B ${suffix}`);await page.getByRole("button",{name:"Salvar",exact:true}).click();
+  await page.getByLabel("Nome",{exact:true}).fill(`Editado B ${suffix}`);
+  const saveContact = page.waitForResponse(
+    (r) => r.url().includes(`/api/v1/contacts/${contacts[1]}`) && r.request().method() === "PATCH" && r.status() === 200
+  );
+  await page.getByRole("button",{name:"Salvar",exact:true}).click();
+  await saveContact;
   await expect.poll(async()=> (await db.from("contacts").select("name").eq("id",contacts[1]).single()).data?.name).toBe(`Editado B ${suffix}`);
   await expect.poll(async()=> (await db.from("api_audit_log").select("metadata,actor_user_id").eq("organization_id",orgs[1]).eq("actor_user_id",actor).eq("resource_id",contacts[1]).order("created_at",{ascending:false}).limit(1)).data?.[0]?.metadata?.support_session_id).toBeTruthy();
   await page.screenshot({path:".superpowers/evidence/comunidade-360/suporte-full-edita-b.png"});
