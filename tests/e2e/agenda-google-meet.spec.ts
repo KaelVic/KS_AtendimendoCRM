@@ -483,7 +483,14 @@ test("marca Meet, copia link, autoriza em atendimento humano e entrega novamente
     expect(oldJob[0]).toMatchObject({ id: firstJob, organization_id: f.org, contact_id: f.contact, kind: "transactional_delivery", status: "done" });
     await page.goto(`/app/inbox/${f.conversation}`);
     page.on("dialog", (dialog) => dialog.accept());
+    const closePromise = page.waitForResponse(
+      (r) =>
+        new URL(r.url()).pathname.endsWith("/close") &&
+        r.request().method() === "POST" &&
+        r.status() === 200,
+    );
     await page.getByRole("button", { name: "Fechar", exact: true }).click();
+    await closePromise;
     await expect
       .poll(
         async () =>

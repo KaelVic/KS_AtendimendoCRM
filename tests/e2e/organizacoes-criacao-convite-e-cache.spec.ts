@@ -116,8 +116,15 @@ test("org única oferece criação, responsável aceita e A→B→A não mistura
     const update = await db.from("organizations").update({ onboarded_at: new Date().toISOString() }).eq("id", orgB);
     if (update.error) throw update.error;
     await conversation(orgB, `Cliente B ${suffix}`);
+    const conversationsPromise = page.waitForResponse(
+      (r) =>
+        r.url().includes("/api/v1/conversations") &&
+        r.request().method() === "GET" &&
+        r.status() === 200,
+    );
     await page.getByRole("link", { name: "Voltar ao aplicativo" }).click();
     await page.waitForURL("**/app/inbox", { waitUntil: "load" });
+    await conversationsPromise;
     await expect(page.locator("[data-conversation-id]").getByText(`Cliente A ${suffix}`, { exact: true })).toBeVisible();
     const cookieBeforeFailure = (await page.context().cookies()).find(cookie => cookie.name === "active_org")?.value;
     await page.route("**/app/**", async route => {

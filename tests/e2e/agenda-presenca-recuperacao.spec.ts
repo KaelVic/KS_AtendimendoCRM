@@ -1012,9 +1012,18 @@ test("Radar recorta demandas pela RLS real, além do pool frio, e preserva gest�
       total_sem_proximo_passo: number;
     };
   };
+  const gotoRadar = async () => {
+    const atRisk = page.waitForResponse(
+      (r) =>
+        new URL(r.url()).pathname === "/api/v1/leads/at-risk" &&
+        r.status() === 200,
+    );
+    await page.goto("/app/radar");
+    await atRisk;
+  };
   await policy("own");
   await login(page, members.agent!.email);
-  await page.goto("/app/radar");
+  await gotoRadar();
   await expect(page.getByTestId("radar-sem-proximo-passo")).toContainText("Própria fora do pool");
   const own = await read();
   expect(own.sem_proximo_passo.map((d) => d.id).sort()).toEqual(
@@ -1033,7 +1042,7 @@ test("Radar recorta demandas pela RLS real, além do pool frio, e preserva gest�
   );
   expect(unassigned.total_sem_proximo_passo).toBe(3);
   await login(page, members.manager!.email);
-  await page.goto("/app/radar");
+  await gotoRadar();
   await expect(page.getByTestId("radar-sem-proximo-passo")).toContainText("Órfã de gestão");
   expect((await read()).total_sem_proximo_passo).toBe(6);
   await login(page, members.viewer!.email);
@@ -1053,7 +1062,7 @@ test("Radar recorta demandas pela RLS real, além do pool frio, e preserva gest�
   await page.getByRole("button", { name: /Acompanhar/ }).click();
   await page.getByRole("button", { name: "Confirmar e entrar" }).click();
   await page.waitForURL("**/app/inbox");
-  await page.goto("/app/radar");
+  await gotoRadar();
   await expect(page.getByTestId("radar-sem-proximo-passo")).toContainText("Órfã de gestão");
   expect((await read()).total_sem_proximo_passo).toBe(6);
   await page.getByRole("button", { name: "Sair do acompanhamento" }).click();

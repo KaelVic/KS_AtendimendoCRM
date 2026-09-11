@@ -116,7 +116,17 @@ test("suporte mantém identidade, opera B e encerra sem misturar A; readonly/exp
   const sameTab=await page.context().newPage();await sameTab.goto("/app/inbox");
   await expect(sameTab.getByTestId("tenant-switcher")).toContainText(`Suporte A ${suffix}`);
   second=await browser.newContext();observeRequests(second);const other=await second.newPage();observeAuth(other);await login(other,email);await acknowledgeKnownAction(other,"/login");
-  await start(page,orgs[1]!);
+  const switchedToB = sameTab.waitForResponse(async response => {
+    const url = new URL(response.url());
+    if (response.request().method() !== "GET" || url.pathname !== "/api/v1/conversations"
+      || response.status() !== 200) return false;
+    const body = await response.json().catch(() => null) as { data?: Array<{ organization_id?: string; contacts?: { name?: string } }> } | null;
+    return body?.data?.some(conversation => conversation.organization_id === orgs[1]
+      && conversation.contacts?.name === `Contato B ${suffix}`) === true;
+  });
+  void switchedToB.catch(() => {});
+  await start(page, orgs[1]!);
+  await switchedToB;
   await expect(sameTab.getByTestId("tenant-switcher")).toContainText(`Suporte B ${suffix}`);
   await expect(sameTab.locator("[data-conversation-id]").getByText(`Contato B ${suffix}`,{exact:true})).toBeVisible();
   await expect(sameTab.locator("[data-conversation-id]").getByText(`Contato A ${suffix}`,{exact:true})).toHaveCount(0);

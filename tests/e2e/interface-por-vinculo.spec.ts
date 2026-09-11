@@ -27,7 +27,14 @@ async function customize(page: Page, email: string, only?: string) {
       if (await checkbox.isChecked()) await checkbox.uncheck();
     await dialog.getByRole("checkbox", { name: only, exact: true }).check();
   }
+  const savePromise = page.waitForResponse(
+    (r) =>
+      r.url().includes("/interface") &&
+      r.request().method() === "PATCH" &&
+      r.status() === 200,
+  );
   await dialog.getByRole("button", { name: "Salvar interface" }).click();
+  await savePromise;
   await expect(dialog).toHaveCount(0);
 }
 test("interface por membro atualiza ao vivo, preserva formulário e convite aplica seleção", async ({
