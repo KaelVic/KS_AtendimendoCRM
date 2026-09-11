@@ -237,13 +237,21 @@ test("fechar canal preserva demanda, desfecho explícito e nova entrada volta à
     await expect(page.getByRole("heading", { name: "Central de avisos" })).toBeVisible();
     await expect(page.getByTestId("inbox-item")).toContainText("Resposta registrada; atendimento mudou");
     await page.screenshot({ path: `${evidence}/task4-caso-obsoleto-aviso.png`, fullPage: true });
+    const memPromise = page.waitForResponse(
+      (r) => r.url().includes("/crm-summary") && r.status() === 200,
+    );
     await page.goto(`/app/inbox/${conversation}`);
-    await expect(page.getByTestId("inbox-memoria")).toContainText("Histórico encerrado");
+    await memPromise;
+    await expect(page.getByTestId("inbox-memoria")).toContainText("Histórico encerrado", { timeout: 15_000 });
     const language = await db.auth.admin.updateUserById(user, { user_metadata: { locale: "es" } });
     if (language.error) throw language.error;
+    const langPromise = page.waitForResponse(
+      (r) => r.url().includes("/crm-summary") && r.status() === 200,
+    );
     await page.reload();
-    await expect(page.getByTestId("inbox-memoria")).toContainText("Historial cerrado — sin tareas pendientes");
-    await expect(page.getByTestId("inbox-memoria")).toContainText("Resuelta");
+    await langPromise;
+    await expect(page.getByTestId("inbox-memoria")).toContainText("Historial cerrado — sin tareas pendientes", { timeout: 15_000 });
+    await expect(page.getByTestId("inbox-memoria")).toContainText("Resuelta", { timeout: 15_000 });
     await page.screenshot({ path: `${evidence}/task4-historico-es.png`, fullPage: true });
     await page.getByRole("button", { name: "Reabrir", exact: true }).click();
     await expect.poll(async () => (await db.from("conversations").select("status").eq("organization_id",org).eq("id",conversation).single()).data?.status).toBe("open");

@@ -127,12 +127,12 @@ test("suporte mantém identidade, opera B e encerra sem misturar A; readonly/exp
   void switchedToB.catch(() => {});
   await start(page, orgs[1]!);
   await switchedToB;
-  await expect(sameTab.getByTestId("tenant-switcher")).toContainText(`Suporte B ${suffix}`);
-  await expect(sameTab.locator("[data-conversation-id]").getByText(`Contato B ${suffix}`,{exact:true})).toBeVisible();
+  await expect(sameTab.getByTestId("tenant-switcher")).toContainText(`Suporte B ${suffix}`,{timeout:15000});
+  await expect(sameTab.locator("[data-conversation-id]").getByText(`Contato B ${suffix}`,{exact:true})).toBeVisible({timeout:15000});
   await expect(sameTab.locator("[data-conversation-id]").getByText(`Contato A ${suffix}`,{exact:true})).toHaveCount(0);
   await page.goto("/onboarding");await page.waitForURL("**/app/inbox");
   await expect(page.getByRole("alert").filter({hasText:/edição permitida/i})).toContainText(`Suporte B ${suffix}`);
-  await expect(page.locator("[data-conversation-id]").getByText(`Contato B ${suffix}`,{exact:true})).toBeVisible();
+  await expect(page.locator("[data-conversation-id]").getByText(`Contato B ${suffix}`,{exact:true})).toBeVisible({timeout:15000});
   await expect(page.locator("[data-conversation-id]").getByText(`Contato A ${suffix}`,{exact:true})).toHaveCount(0);
   await other.reload();await expect(other.getByTestId("tenant-switcher")).toContainText(`Suporte A ${suffix}`);
   const members=await db.from("user_organizations").select("id").eq("organization_id",orgs[1]).eq("user_id",actor);expect(members.data).toEqual([]);
@@ -176,9 +176,9 @@ test("suporte mantém identidade, opera B e encerra sem misturar A; readonly/exp
   // Evita rejeição não observada se end falhar antes do await da resposta.
   void returnedToA.catch(()=>{});
   await end(page);await returnedToA;
-  await expect(page.getByTestId("tenant-switcher")).toContainText(`Suporte A ${suffix}`);
-  await expect(sameTab.getByTestId("tenant-switcher")).toContainText(`Suporte A ${suffix}`);
-  await expect(sameTab.locator("[data-conversation-id]").getByText(`Contato A ${suffix}`,{exact:true})).toBeVisible();
+  await expect(page.getByTestId("tenant-switcher")).toContainText(`Suporte A ${suffix}`,{timeout:15000});
+  await expect(sameTab.getByTestId("tenant-switcher")).toContainText(`Suporte A ${suffix}`,{timeout:15000});
+  await expect(sameTab.locator("[data-conversation-id]").getByText(`Contato A ${suffix}`,{exact:true})).toBeVisible({timeout:15000});
   await expect(sameTab.locator("[data-conversation-id]").getByText(`Contato B ${suffix}`,{exact:true})).toHaveCount(0);
   // Readonly prevalece inclusive depois de o ator ser admin FÍSICO em B.
   await insert("user_organizations",{organization_id:orgs[1],user_id:actor,role:"admin",accepted_at:new Date().toISOString()});

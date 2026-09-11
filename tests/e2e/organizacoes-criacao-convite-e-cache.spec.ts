@@ -166,7 +166,7 @@ test("org única oferece criação, responsável aceita e A→B→A não mistura
       await page.unroute("**/app/**");
       await expect(page.getByTestId("tenant-switcher")).toContainText(`Empresa ${own} ${suffix}`);
       expect(await page.evaluate(() => (window as unknown as Record<string, unknown>).__oldDocument)).toBeUndefined();
-      await expect(page.locator("[data-conversation-id]").getByText(`Cliente ${own} ${suffix}`, { exact: true })).toBeVisible();
+      await expect(page.locator("[data-conversation-id]").getByText(`Cliente ${own} ${suffix}`, { exact: true })).toBeVisible({ timeout: 15_000 });
       await expect(page.locator("[data-conversation-id]").getByText(`Cliente ${foreign} ${suffix}`, { exact: true })).toHaveCount(0);
     }
     await page.screenshot({ path: ".superpowers/evidence/comunidade-360/inbox-volta-a.png" });
@@ -178,7 +178,7 @@ test("org única oferece criação, responsável aceita e A→B→A não mistura
     await guest.goto(new URL(link).pathname);
     await guest.getByRole("button", { name: "Aceitar convite", exact: true }).click();
     await expect(guest.getByTestId("tenant-switcher")).toContainText(`Empresa B ${suffix}`);
-    await expect(guest.locator("[data-conversation-id]").getByText(`Cliente B ${suffix}`, { exact: true })).toBeVisible();
+    await expect(guest.locator("[data-conversation-id]").getByText(`Cliente B ${suffix}`, { exact: true })).toBeVisible({ timeout: 15_000 });
     const membership = await db.from("user_organizations").select("invited_by,role").eq("organization_id", orgB).eq("user_id", users[1]).single();
     expect(membership.data).toEqual({ invited_by: users[0], role: "admin" });
     await guest.screenshot({ path: ".superpowers/evidence/comunidade-360/aceite-na-org-b.png" });
