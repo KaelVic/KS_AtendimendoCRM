@@ -136,14 +136,21 @@ function decisaoPara(sha: string): string {
   // `>> /dev/stdout` falha. No macOS funciona. O passo do workflow escreve no
   // arquivo que o GitHub dá — então o teste faz o mesmo, que é também o que o
   // ambiente real faz.
-  const saidaDoGithub = join(repo, `.github-output-${process.pid}`);
+  const saidaNome = `.github-output-${process.pid}`;
+  const saidaDoGithub = join(repo, saidaNome);
   writeFileSync(saidaDoGithub, "");
 
+  const scriptComEnv = `export GITHUB_OUTPUT="${saidaNome}"\n${script.replace(/\r\n/g, "\n")}`;
+
+  const scriptName = `.guarda-${process.pid}.sh`;
+  const scriptPath = join(repo, scriptName);
+  writeFileSync(scriptPath, scriptComEnv, "utf8");
+
   try {
-    const saida = execFileSync("bash", ["-c", script], {
+    const saida = execFileSync("bash", [scriptName], {
       cwd: repo,
       encoding: "utf8",
-      env: { ...process.env, GITHUB_OUTPUT: saidaDoGithub },
+      env: { ...process.env, GITHUB_OUTPUT: saidaNome },
       stdio: ["ignore", "pipe", "pipe"],
     });
     const escrito = readFileSync(saidaDoGithub, "utf8");
@@ -227,7 +234,13 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  if (repo) rmSync(repo, { recursive: true, force: true });
+  if (repo) {
+    try {
+      rmSync(repo, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    } catch {
+      // no-op no Windows se arquivos git temporários estiverem em lock breve
+    }
+  }
 });
 
 describe("a guarda reconhece o corte pela forma dele", () => {
