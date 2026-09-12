@@ -125,11 +125,11 @@ json_str() { grep -o "\"$2\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" <<<"$1" | head 
 api() {
   local method="$1" path="$2" body="${3:-}"
   if [ -n "$body" ]; then
-    curl -sS -X "$method" "$API$path" \
+    curl -sS --connect-timeout 10 --max-time 30 -X "$method" "$API$path" \
       -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
       -H "Content-Type: application/json" -d "$body"
   else
-    curl -sS -X "$method" "$API$path" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN"
+    curl -sS --connect-timeout 10 --max-time 30 -X "$method" "$API$path" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN"
   fi
 }
 

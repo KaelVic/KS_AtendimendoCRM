@@ -104,7 +104,7 @@ esc() {
 
 # ── 1. Que versão está instalada e qual é a última publicada? ────────────────
 FETCH_OK=1
-git fetch --tags --quiet origin 2>/dev/null || FETCH_OK=0
+GIT_TERMINAL_PROMPT=0 git fetch --tags --quiet origin 2>/dev/null || FETCH_OK=0
 
 CURRENT_TAG="$(git describe --tags --exact-match HEAD 2>/dev/null || true)"
 CURRENT_SHA="$(git rev-parse --short HEAD 2>/dev/null || echo '?')"

@@ -305,7 +305,7 @@ refuse() { c_red "✖ $*"; exit "$REFUSED_RC"; }
 is_already_in_head() {
   local ref="$1"
   if [ "$(git rev-parse --is-shallow-repository 2>/dev/null || echo unknown)" = "true" ]; then
-    git fetch --unshallow --tags --quiet origin 2>/dev/null || true
+    GIT_TERMINAL_PROMPT=0 git fetch --unshallow --tags --quiet origin 2>/dev/null || true
   fi
   case "$(git rev-parse --is-shallow-repository 2>/dev/null || echo unknown)" in
     false) : ;;
@@ -456,7 +456,7 @@ ultima_versao_publicada() {
   # existe de verdade neste repo). O `--sort=-v:refname` do git põe o prerelease
   # ACIMA do release final quando `versionsort.suffix` não está configurado, e
   # uma instalação nova nasceria num release candidate sem ninguém pedir.
-  ref="$(git ls-remote --tags --refs --sort=-v:refname "$url" 'v*' 2>/dev/null \
+  ref="$(GIT_TERMINAL_PROMPT=0 git ls-remote --tags --refs --sort=-v:refname "$url" 'v*' 2>/dev/null \
         | awk '{print $2}' | grep -v -- '-' | head -1)" || return 0
   [ -n "$ref" ] || return 0
   printf '%s' "${ref#refs/tags/v}"

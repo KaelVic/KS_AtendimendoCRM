@@ -65,10 +65,11 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.token.outputs.token }}
           VERSAO: ${{ steps.corte.outputs.versao }}
+          APP_SLUG: ${{ steps.token.outputs.app-slug }}
         run: |
           set -euo pipefail
-          git config user.name  'deskcomm-release[bot]'
-          git config user.email '${{ steps.token.outputs.app-slug }}[bot]@users.noreply.github.com'
+          git config user.name  "${APP_SLUG}[bot]"
+          git config user.email "${APP_SLUG}[bot]@users.noreply.github.com"
           git checkout -b "release/${VERSAO}"
           git add CHANGELOG.md .changes
           git commit -m "release(${VERSAO}): a versão montada a partir dos fragmentos declarados"
@@ -110,6 +111,8 @@ jobs:
 
       - name: Este push foi um corte de release?
         id: pendente
+        env:
+          APP_SLUG: ${{ steps.token.outputs.app-slug }}
         run: |
           set -euo pipefail
 
@@ -214,12 +217,12 @@ jobs:
             echo "::notice::O CHANGELOG anuncia ${versao} sem tag, mas este push não apagou fragmento nenhum."
             echo "::notice::Tag não criada. Uma release sai do workflow 'release' (Run workflow), nunca de um merge comum."
             echo "cortar=nao" >> "$GITHUB_OUTPUT"
-          elif [ "${assinante}" != "deskcomm-release[bot]" ]; then
+          elif [ "${assinante}" != "${APP_SLUG}[bot]" ]; then
             # Alto, e não `notice`: alguém apagou fragmento de `.changes/` num
             # commit que não veio do workflow de release. Ou é forja, ou é
             # engano — e o silêncio é exatamente o que fez a #472 passar dias
             # sem ninguém ver.
-            echo "::error::Este commit apagou ${removidos} fragmento(s) de .changes/ mas não foi assinado pelo App da release (assinante: ${assinante})."
+            echo "::error::Este commit apagou ${removidos} fragmento(s) de .changes/ mas não foi assinado pelo App da release (assinante: ${assinante}, esperado: ${APP_SLUG}[bot])."
             echo "::error::A tag v${versao} NÃO foi criada. Se isto foi um corte legítimo, ele não saiu do workflow 'release'."
             exit 1
           elif [ -n "${exigem_acao}" ]; then
@@ -240,10 +243,11 @@ jobs:
         if: steps.pendente.outputs.cortar == 'sim'
         env:
           VERSAO: ${{ steps.pendente.outputs.versao }}
+          APP_SLUG: ${{ steps.token.outputs.app-slug }}
         run: |
           set -euo pipefail
-          git config user.name  'deskcomm-release[bot]'
-          git config user.email '${{ steps.token.outputs.app-slug }}[bot]@users.noreply.github.com'
+          git config user.name  "${APP_SLUG}[bot]"
+          git config user.email "${APP_SLUG}[bot]@users.noreply.github.com"
           # Tag ANOTADA: guarda autor e data, e é o que `git describe
           # --exact-match` do agent.sh espera encontrar na VPS.
           git tag -a "v${VERSAO}" -m "v${VERSAO}"

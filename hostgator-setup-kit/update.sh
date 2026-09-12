@@ -41,7 +41,7 @@ setup_update_agent_cron
 
 # ── 1. Tem atualização mesmo? ────────────────────────────────────────────────
 step "Procurando atualizações"
-git fetch --tags --quiet origin 2>/dev/null || c_ylw "⚠ não consegui falar com o GitHub — sigo com o código que já está aqui."
+GIT_TERMINAL_PROMPT=0 git fetch --tags --quiet origin 2>/dev/null || c_ylw "⚠ não consegui falar com o GitHub — sigo com o código que já está aqui."
 [ -n "$TARGET_TAG" ] || TARGET_TAG="$(git tag -l 'v*' --sort=-v:refname | head -1)"
 [ -n "$TARGET_TAG" ] || die "Não encontrei nenhuma versão publicada para instalar."
 git rev-parse --verify --quiet "${TARGET_TAG}^{commit}" >/dev/null \
