@@ -46,7 +46,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
  */
 
 const RAIZ = process.cwd();
-const BOT = "deskcomm-release[bot]";
+const APP_SLUG = "release-app";
+const BOT = `${APP_SLUG}[bot]`;
 
 /** O bloco `run:` do passo que decide se este push foi um corte. */
 function bashDaGuarda(): string {
@@ -140,7 +141,7 @@ function decisaoPara(sha: string): string {
   const saidaDoGithub = join(repo, saidaNome);
   writeFileSync(saidaDoGithub, "");
 
-  const scriptComEnv = `export GITHUB_OUTPUT="${saidaNome}"\n${script.replace(/\r\n/g, "\n")}`;
+  const scriptComEnv = `export GITHUB_OUTPUT="${saidaNome}"\nexport APP_SLUG="${APP_SLUG}"\n${script.replace(/\r\n/g, "\n")}`;
 
   const scriptName = `.guarda-${process.pid}.sh`;
   const scriptPath = join(repo, scriptName);
@@ -150,7 +151,7 @@ function decisaoPara(sha: string): string {
     const saida = execFileSync("bash", [scriptName], {
       cwd: repo,
       encoding: "utf8",
-      env: { ...process.env, GITHUB_OUTPUT: saidaNome },
+      env: { ...process.env, GITHUB_OUTPUT: saidaNome, APP_SLUG },
       stdio: ["ignore", "pipe", "pipe"],
     });
     const escrito = readFileSync(saidaDoGithub, "utf8");

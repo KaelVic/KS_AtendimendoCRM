@@ -836,7 +836,11 @@ elif [ -f "$REPO_DIR/$COMPOSE" ]; then
   cd "$REPO_DIR"; c_grn "✓ repositório em ./$REPO_DIR"
 else
   c_ylw "Clonando $REPO_URL ..."
-  git clone --depth 1 "$REPO_URL" "$REPO_DIR"
+  if ! GIT_TERMINAL_PROMPT=0 git clone --depth 1 "$REPO_URL" "$REPO_DIR"; then
+    c_red "✖ Falha ao clonar o repositório ($REPO_URL)."
+    c_red "  Se o repositório for privado, configure acesso (SSH key ou token) antes de prosseguir."
+    exit 1
+  fi
   cd "$REPO_DIR"
 fi
 PROJECT_DIR="$(pwd)"
