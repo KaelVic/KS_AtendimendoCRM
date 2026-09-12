@@ -62,7 +62,7 @@ describe("a tag nasce no CI, e nunca do GITHUB_TOKEN", () => {
     // GitHub). Se a tag nascesse dele, `publish-image.yml` nunca rodaria: a tag
     // existiria, nenhum erro apareceria, e NENHUMA VPS receberia a atualização.
     expect(release).toContain("actions/create-github-app-token");
-    expect(release).toContain("secrets.RELEASE_APP_ID");
+    expect(release).toContain("vars.RELEASE_APP_CLIENT_ID");
     expect(release).toContain("secrets.RELEASE_APP_PRIVATE_KEY");
   });
 
