@@ -311,8 +311,17 @@ test("configura responsáveis por canal e o cron distribui sem misturar números
       path: `${evidence}/task10-routing-notice-desktop.png`,
       fullPage: true,
     });
-    await notice.getByRole("link", { name: "Abrir conversa" }).click();
-    await expect(page).toHaveURL(new RegExp(`/app/inbox/${southConversation}$`));
+    const [messagesResponse] = await Promise.all([
+      page.waitForResponse(
+        (r) =>
+          r.url().includes("/messages") &&
+          r.request().method() === "GET" &&
+          r.status() === 200,
+      ),
+      notice.getByRole("link", { name: "Abrir conversa" }).click(),
+    ]);
+    expect(messagesResponse.ok()).toBe(true);
+    await expect(page).toHaveURL(new RegExp(`id=${southConversation}`));
     await expect(
       page.getByText("Mensagem de Cliente Canal Sul", { exact: true }).first(),
     ).toBeVisible();

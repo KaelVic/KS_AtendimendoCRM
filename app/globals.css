@@ -32,49 +32,53 @@
 
 :root {
   /* Surfaces (light) */
-  --color-bg: #faf9f6;
+  --color-bg: #f8fafc;
   --color-surface: #ffffff;
-  --color-surface-elevated: #f5f3ee;
-  --color-overlay: rgba(28, 26, 22, 0.42);
+  --color-surface-elevated: #f1f5f9;
+  --color-overlay: rgba(15, 23, 42, 0.45);
 
   /* Text (light) */
-  --color-text: #1c1a16;
-  --color-text-muted: #5d594f;
-  --color-text-subtle: #7d786c;
+  --color-text: #0f172a;
+  --color-text-muted: #475569;
+  --color-text-subtle: #64748b;
 
   /* Borders (light) */
-  --color-border: #e7e3da;
-  --color-border-strong: #d2cdbf;
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
 
-  /* Accent — Sage (11 stops) */
-  --color-accent-50:  #f3f6f1;
-  --color-accent-100: #e4ebe0;
-  --color-accent-200: #c8d6c1;
-  --color-accent-300: #a4ba9a;
-  --color-accent-400: #82a077;
-  --color-accent-500: #67885d;
-  --color-accent-600: #506d48;
-  --color-accent-700: #41573b;
-  --color-accent-800: #374731;
-  --color-accent-900: #2f3c2b;
-  --color-accent-950: #171f15;
+  /* Accent — Sky Translúcido / Cyan (11 stops) */
+  --color-accent-50:  #ebf7fb;
+  --color-accent-100: #d8f4fd;
+  --color-accent-200: #b3ecfd;
+  --color-accent-300: #80dffb;
+  --color-accent-400: #3dd3f9;
+  --color-accent-500: #00c5ec;
+  --color-accent-600: #00b4d8;
+  --color-accent-700: #158aa5;
+  --color-accent-800: #196b80;
+  --color-accent-900: #1a5766;
+  --color-accent-950: #00212a;
   --color-accent: var(--color-accent-600);
-  --color-accent-fg: #ffffff;
+  --color-accent-fg: #0f172a;
   --color-accent-soft: var(--color-accent-100);
   --color-accent-hover: var(--color-accent-700);
 
-  /* Neutrals — greige (11 stops, light) */
-  --color-neutral-50:  #faf9f6;
-  --color-neutral-100: #f3f1ec;
-  --color-neutral-200: #e7e3da;
-  --color-neutral-300: #d2cdbf;
-  --color-neutral-400: #a9a395;
-  --color-neutral-500: #7d786c;
-  --color-neutral-600: #5d594f;
-  --color-neutral-700: #46433b;
-  --color-neutral-800: #2e2c26;
-  --color-neutral-900: #1c1a16;
-  --color-neutral-950: #0e0d0a;
+  /* IA & Destaques */
+  --color-ia-destaque: #00e5ff;
+  --color-ia-gelo: #b2ebf2;
+
+  /* Neutrals — slate (11 stops, light) */
+  --color-neutral-50:  #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1e293b;
+  --color-neutral-900: #0f172a;
+  --color-neutral-950: #020617;
 
   /* States (light) */
   --color-success: #5a8a5f;
@@ -163,49 +167,7 @@
   --input: var(--color-border);
   --ring: var(--color-accent-500);
   --radius: var(--radius-md);
-  /* ---- Agenda · cor de pessoa (8 trilhas) ------------------------------
-   * Quem é o dono do compromisso é o eixo visual da grade, e a accent NÃO
-   * serve para isso: ela é substituída em runtime pelo revendedor
-   * (`<style id="marca-instalacao">` no layout), então uma agenda pintada
-   * com ela ficaria monocromática — e azul — na instalação que comprou a
-   * marca em azul.
-   *
-   * OS VALORES SÃO DERIVADOS, NÃO ESCOLHIDOS A OLHO — e a primeira versão
-   * destas linhas dizia "os matizes saem de Okabe-Ito", o que a medição
-   * desmentiu: eu tinha ajustado tanto a luminosidade que a separação da
-   * referência não sobreviveu. Medido no par mais próximo, em OKLab:
-   *
-   *     versão anterior (azul x petróleo) : 0.0507   <- indistinguíveis
-   *     Okabe-Ito, a referência (n=7)     : 0.1558
-   *     esta versão, pior par             : 0.1162
-   *
-   * A régua é a distância OKLab entre os pares, e ela vem da própria
-   * referência em vez de um número inventado. Não alcançamos os 0.1558 dela
-   * por duas razões declaradas: são OITO trilhas no espaço em que ela põe
-   * sete, e o croma fica limitado a 0.13 porque este produto é para quem
-   * encara a tela oito horas por dia — a Okabe-Ito não tem essa restrição.
-   *
-   * Os matizes (30 70 100 190 225 262 300 340) são espalhados de propósito, e
-   * não pelo que maximiza a distância: uma busca livre chegou a 0.1155 pondo
-   * TRÊS trilhas na faixa dos roxos. Distância mede distinguibilidade e não
-   * mede NOMEABILIDADE — "o roxo da Ana" e "o roxo do Bruno" não servem numa
-   * equipe. Por isso Telha, Âmbar, Oliva, Turquesa, Azul, Índigo, Violeta,
-   * Framboesa: oito palavras diferentes.
-   *
-   * A faixa 113-165 é vetada: é onde mora a accent Sage (139 graus). Cor de
-   * PESSOA não pode ser confundida com cor de ESTADO do sistema.
-   *
-   * A luminosidade ALTERNA entre vizinhos, que é o truque da Okabe-Ito para
-   * separar o azul-céu do azul — e foi exatamente o que a minha versão
-   * anterior perdeu ao uniformizar o brilho.
-   *
-   * MESMO ASSIM, cor nunca é a única informação: todo lugar que usa uma
-   * destas trilhas carrega junto a inicial da pessoa.
-   *
-   * O fundo suave de cada bloco é derivado com `color-mix` no ponto de uso,
-   * não duplicado aqui — assim a relação entre a faixa e o fundo é uma só,
-   * e não dois hex que envelhecem separados.
-   */
+  /* ---- Agenda · cor de pessoa (8 trilhas) ------------------------------ */
   --agenda-pessoa-1: #ac4d40;   /* telha */
   --agenda-pessoa-2: #bd7c20;   /* âmbar */
   --agenda-pessoa-3: #7e6f01;   /* oliva */
@@ -218,62 +180,34 @@
 
 /* ─────────────────────────────────────────────────────────────────────────
    Espelho do tema claro para SUBÁRVORE.
-
-   `:root` casa só o `<html>`. Medido antes de escrever: `grep -c
-   'data-theme="light"' app/globals.css` = 0 — ou seja, um `<div
-   data-theme="light">` dentro de uma página escura NÃO recebia nenhum token
-   claro; herdava os escuros do `<html>` e renderizava uma tela que mente. É
-   exatamente o que o preview lado a lado da marca precisa fazer.
-
-   Custom property herdada não tem como voltar ao valor do `:root` dentro de
-   uma subárvore (`initial`/`revert` a deixam sem valor, não com o valor de
-   cima), então redeclarar é obrigação da linguagem, não escolha. O conjunto
-   redeclarado é EXATAMENTE o que `[data-theme="dark"]` sobrescreve — 59
-   props — e um teste (`tests/unit/branding-tema-claro-escopavel.test.ts`)
-   reprova quando os dois divergem; sem ele a cópia envelhece calada.
-
-   Por que a seletor NÃO é `:root, [data-theme="light"]`, que seria a forma
-   óbvia: `extrairRegua` (lib/branding/contraste.ts) acha o bloco claro por
-   igualdade exata de seletor (`r.seletor === ":root"`), e a lista o quebraria
-   — a régua inteira, e com ela os 37 testes de contraste, deixariam de ser
-   extraídos.
-
-   As 11 paradas `--color-accent-NNN` ficam DE FORA de propósito. Elas são
-   idênticas nos dois blocos do produto, então omiti-las não muda pixel algum
-   aqui; e, na instalação que trocou a cor, a subárvore clara passa a herdar a
-   rampa do `<html>` (a do revendedor) em vez de fixar a Sage. Pelo mesmo
-   motivo os papéis abaixo mantêm a forma `var(--color-accent-NNN)`.
-
-   Buraco conhecido: `--color-accent-fg` é literal `#ffffff` e, numa subárvore
-   clara sob página escura, ficaria preso ao branco mesmo quando a marca exige
-   preto. Fechar isso pede um bloco de escopo claro no CSS injetado
-   (lib/branding/css.ts), que só ganha consumidor com a tela de marca.
    ───────────────────────────────────────────────────────────────────────── */
 [data-theme="light"] {
-  --color-bg: #faf9f6;
+  --color-bg: #f8fafc;
   --color-surface: #ffffff;
-  --color-surface-elevated: #f5f3ee;
-  --color-overlay: rgba(28, 26, 22, 0.42);
-  --color-text: #1c1a16;
-  --color-text-muted: #5d594f;
-  --color-text-subtle: #7d786c;
-  --color-border: #e7e3da;
-  --color-border-strong: #d2cdbf;
+  --color-surface-elevated: #f1f5f9;
+  --color-overlay: rgba(15, 23, 42, 0.45);
+  --color-text: #0f172a;
+  --color-text-muted: #475569;
+  --color-text-subtle: #64748b;
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
   --color-accent: var(--color-accent-600);
-  --color-accent-fg: #ffffff;
+  --color-accent-fg: #0f172a;
   --color-accent-soft: var(--color-accent-100);
   --color-accent-hover: var(--color-accent-700);
-  --color-neutral-50: #faf9f6;
-  --color-neutral-100: #f3f1ec;
-  --color-neutral-200: #e7e3da;
-  --color-neutral-300: #d2cdbf;
-  --color-neutral-400: #a9a395;
-  --color-neutral-500: #7d786c;
-  --color-neutral-600: #5d594f;
-  --color-neutral-700: #46433b;
-  --color-neutral-800: #2e2c26;
-  --color-neutral-900: #1c1a16;
-  --color-neutral-950: #0e0d0a;
+  --color-ia-destaque: #00e5ff;
+  --color-ia-gelo: #b2ebf2;
+  --color-neutral-50: #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1e293b;
+  --color-neutral-900: #0f172a;
+  --color-neutral-950: #020617;
   --color-success: #5a8a5f;
   --color-success-bg: rgba(90, 138, 95, 0.12);
   --color-success-fg: #41673f;
@@ -309,13 +243,7 @@
   --border: var(--color-border);
   --input: var(--color-border);
   --ring: var(--color-accent-500);
-  /* ---- Agenda · cor de pessoa (espelho do :root) -----------------------
-   * Espelhado aqui porque o tema escuro sobrescreve estas oito chaves, e
-   * `tests/unit/branding-tema-claro-escopavel.test.ts` exige que este bloco
-   * cubra EXATAMENTE o que o escuro cobre: uma subárvore `data-theme="light"`
-   * dentro de página escura herdaria os valores escuros, e a amostra de cor
-   * mentiria sobre a cor que a pessoa tem.
-   */
+  /* ---- Agenda · cor de pessoa (espelho do :root) ----------------------- */
   --agenda-pessoa-1: #ac4d40;   /* telha */
   --agenda-pessoa-2: #bd7c20;   /* âmbar */
   --agenda-pessoa-3: #7e6f01;   /* oliva */
@@ -328,49 +256,53 @@
 
 [data-theme="dark"] {
   /* Surfaces (dark — drawn) */
-  --color-bg: #161510;
-  --color-surface: #1d1c17;
-  --color-surface-elevated: #272620;
-  --color-overlay: rgba(0, 0, 0, 0.55);
+  --color-bg: #0a2342;
+  --color-surface: #0f2c52;
+  --color-surface-elevated: #163864;
+  --color-overlay: rgba(2, 6, 23, 0.70);
 
   /* Text (dark) */
-  --color-text: #f5f4ef;
-  --color-text-muted: #8e8b7f;
-  --color-text-subtle: #605e54;
+  --color-text: #f8fafc;
+  --color-text-muted: #94a3b8;
+  --color-text-subtle: #64748b;
 
   /* Borders (dark) */
-  --color-border: #33312a;
-  --color-border-strong: #444239;
+  --color-border: #1e3a5f;
+  --color-border-strong: #2a4d7c;
 
   /* Accent stays same hex stops; default shifts up for dark contrast */
-  --color-accent-50:  #f3f6f1;
-  --color-accent-100: #e4ebe0;
-  --color-accent-200: #c8d6c1;
-  --color-accent-300: #a4ba9a;
-  --color-accent-400: #82a077;
-  --color-accent-500: #67885d;
-  --color-accent-600: #506d48;
-  --color-accent-700: #41573b;
-  --color-accent-800: #374731;
-  --color-accent-900: #2f3c2b;
-  --color-accent-950: #171f15;
+  --color-accent-50:  #ebf7fb;
+  --color-accent-100: #d8f4fd;
+  --color-accent-200: #b3ecfd;
+  --color-accent-300: #80dffb;
+  --color-accent-400: #3dd3f9;
+  --color-accent-500: #00c5ec;
+  --color-accent-600: #00b4d8;
+  --color-accent-700: #158aa5;
+  --color-accent-800: #196b80;
+  --color-accent-900: #1a5766;
+  --color-accent-950: #00212a;
   --color-accent: var(--color-accent-400);
-  --color-accent-fg: #161510;
-  --color-accent-soft: rgba(130, 160, 119, 0.16);
+  --color-accent-fg: #0a2342;
+  --color-accent-soft: rgba(0, 180, 216, 0.16);
   --color-accent-hover: var(--color-accent-300);
 
-  /* Neutrals — greige (11 stops, dark) */
-  --color-neutral-50:  #f5f4ef;
-  --color-neutral-100: #e6e4dc;
-  --color-neutral-200: #bbb8ac;
-  --color-neutral-300: #8e8b7f;
-  --color-neutral-400: #605e54;
-  --color-neutral-500: #444239;
-  --color-neutral-600: #33312a;
-  --color-neutral-700: #272620;
-  --color-neutral-800: #1d1c17;
-  --color-neutral-900: #161510;
-  --color-neutral-950: #0c0b08;
+  /* IA & Destaques */
+  --color-ia-destaque: #00e5ff;
+  --color-ia-gelo: #b2ebf2;
+
+  /* Neutrals — slate/navy (11 stops, dark) */
+  --color-neutral-50:  #f8fafc;
+  --color-neutral-100: #e2e8f0;
+  --color-neutral-200: #cbd5e1;
+  --color-neutral-300: #94a3b8;
+  --color-neutral-400: #64748b;
+  --color-neutral-500: #475569;
+  --color-neutral-600: #334155;
+  --color-neutral-700: #1e3a5f;
+  --color-neutral-800: #163864;
+  --color-neutral-900: #0a2342;
+  --color-neutral-950: #020617;
 
   /* States (dark) */
   --color-success: #82a077;
@@ -412,10 +344,7 @@
   --border: var(--color-border);
   --input: var(--color-border);
   --ring: var(--color-accent-400);
-  /* ---- Agenda · cor de pessoa (tema escuro) ----------------------------
-   * Mais claras e menos saturadas que as do claro: sobre `#161510` a versão
-   * escura de cada matiz sumiria. Mesma ordem, mesmos nomes.
-   */
+  /* ---- Agenda · cor de pessoa (tema escuro) ---------------------------- */
   --agenda-pessoa-1: #f89080;
   --agenda-pessoa-2: #ca8931;
   --agenda-pessoa-3: #d1bf55;
@@ -463,7 +392,7 @@
   --color-text-muted: var(--color-text-muted);
   --color-text-subtle: var(--color-text-subtle);
 
-  /* Accent — Sage */
+  /* Accent — KaelSolutions (Sky Translúcido / Cyan) */
   --color-accent: var(--color-accent);
   --color-accent-foreground: var(--color-accent-fg);
   --color-accent-soft: var(--color-accent-soft);
@@ -480,7 +409,11 @@
   --color-accent-900: var(--color-accent-900);
   --color-accent-950: var(--color-accent-950);
 
-  /* Neutrals — greige */
+  /* IA & Destaques */
+  --color-ia-destaque: var(--color-ia-destaque);
+  --color-ia-gelo: var(--color-ia-gelo);
+
+  /* Neutrals — slate/navy */
   --color-neutral-50: var(--color-neutral-50);
   --color-neutral-100: var(--color-neutral-100);
   --color-neutral-200: var(--color-neutral-200);
@@ -532,7 +465,9 @@
   --color-card-foreground: var(--color-text);
 
   /* Tipografia */
-  --font-sans: var(--font-atkinson), ui-sans-serif, system-ui, -apple-system,
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-sora), var(--font-inter), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, sans-serif;
   --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco,
     Consolas, monospace;
@@ -678,7 +613,7 @@
     overflow-x: hidden;
     background-color: var(--color-bg);
     color: var(--color-text);
-    font-family: var(--font-atkinson), ui-sans-serif, system-ui, -apple-system,
+    font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
       "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
     -webkit-font-smoothing: antialiased;

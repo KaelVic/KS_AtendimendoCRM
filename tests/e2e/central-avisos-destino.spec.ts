@@ -100,10 +100,18 @@ test("agent abre contexto, volta ainda aberto, resolve e reabre; RLS e menu ocul
   const patches: string[] = [];
   page.on("request", req => { if (req.method() === "PATCH" && req.url().includes("/ai/inbox/")) patches.push(req.url()); });
   await evidence(page, info, "desktop");
+  const messagesPromise = page.waitForResponse(
+    (r) => r.url().includes("/messages") && r.status() === 200,
+  );
   await row(page, "Conversa própria").getByRole("link", { name: "Abrir conversa" }).click();
+  await messagesPromise;
   await expect(page).toHaveURL(new RegExp(`id=${conversations[0]}`));
   await expect(page.getByText("Mensagem de contexto da Central", { exact: true }).first()).toBeVisible();
+  const reloadMessagesPromise = page.waitForResponse(
+    (r) => r.url().includes("/messages") && r.status() === 200,
+  );
   await page.reload();
+  await reloadMessagesPromise;
   await expect(page.getByText("Mensagem de contexto da Central", { exact: true }).first()).toBeVisible();
   await page.goBack();
   await expect(row(page, "Conversa própria")).toBeVisible(); expect(patches).toHaveLength(0);

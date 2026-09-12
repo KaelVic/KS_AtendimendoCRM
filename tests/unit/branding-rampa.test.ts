@@ -110,11 +110,11 @@ describe("rampaDeSemente — catraca de calibração contra o design system", ()
     // por não ter o que comparar — instrumento morto tem cara de teste verde.
     expect(esperados).toHaveLength(11);
     expect(new Set(esperados).size).toBe(11);
-    expect(esperados[K]).toBe("#506d48");
+    expect(esperados[K]).toBe("#00b4d8");
   });
 
-  it("reproduz os 11 stops Sage a partir de #506d48 com Δ ≤ 2/255 por canal", () => {
-    const derivada = rampaDeSemente("#506d48");
+  it("reproduz os 11 stops a partir de #00b4d8 com Δ ≤ 2/255 por canal", () => {
+    const derivada = rampaDeSemente("#00b4d8");
     const distancias = esperados.map((esperado, i) => distanciaPorCanal(esperado, derivada[i]!));
     expect(
       Math.max(...distancias),
@@ -123,9 +123,8 @@ describe("rampaDeSemente — catraca de calibração contra o design system", ()
   });
 
   it("devolve o hex LITERAL no stop da semente", () => {
-    // Ida-e-volta por OKLab erra ±1/255. Mostrar `#516d49` no seletor de cor enquanto a
-    // UI pinta `#506d48` custa mais confiança do que o pixel vale.
-    for (const semente of ["#506d48", "#f5c518", "#0f172a", "#e11d48"]) {
+    // Ida-e-volta por OKLab erra ±1/255.
+    for (const semente of ["#00b4d8", "#f5c518", "#0f172a", "#e11d48"]) {
       expect(rampaDeSemente(semente)[K]).toBe(semente);
     }
   });

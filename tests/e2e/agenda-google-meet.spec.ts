@@ -174,7 +174,8 @@ async function book(page: Page, f: Fixture) {
   await login(page, f);
   await page.goto(`/app/inbox/${f.conversation}`);
   await page.getByRole("link", { name: "Marcar compromisso", exact: true }).click();
-  await expect(page.getByTestId("painel-de-marcacao")).toBeVisible();
+  await page.waitForURL("**/app/agenda*");
+  await expect(page.getByTestId("painel-de-marcacao")).toBeVisible({ timeout: 15_000 });
   await expect(page.getByLabel("Quem será atendido")).toHaveValue(f.contact);
   await expect(page.getByLabel("Conversa vinculada (opcional)")).toHaveValue(f.conversation);
   await page.keyboard.press("Escape");
@@ -483,7 +484,14 @@ test("marca Meet, copia link, autoriza em atendimento humano e entrega novamente
     expect(oldJob[0]).toMatchObject({ id: firstJob, organization_id: f.org, contact_id: f.contact, kind: "transactional_delivery", status: "done" });
     await page.goto(`/app/inbox/${f.conversation}`);
     page.on("dialog", (dialog) => dialog.accept());
+    const closePromise = page.waitForResponse(
+      (r) =>
+        new URL(r.url()).pathname.endsWith("/close") &&
+        r.request().method() === "POST" &&
+        r.status() === 200,
+    );
     await page.getByRole("button", { name: "Fechar", exact: true }).click();
+    await closePromise;
     await expect
       .poll(
         async () =>

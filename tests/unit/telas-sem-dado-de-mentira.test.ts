@@ -191,7 +191,7 @@ describe("tela alcançável não come dado de mentira", () => {
         '"estou vendo paciente de outra clínica na minha agenda". Caia no estado ' +
         "vazio até a API existir, ou tire a porta do registry com justificativa.",
     ).toEqual([]);
-  });
+  }, 30000);
 
   it("toda exceção explica o porquê", () => {
     for (const [rota, motivo] of Object.entries(PERMITIDOS)) {

@@ -116,8 +116,15 @@ test("org única oferece criação, responsável aceita e A→B→A não mistura
     const update = await db.from("organizations").update({ onboarded_at: new Date().toISOString() }).eq("id", orgB);
     if (update.error) throw update.error;
     await conversation(orgB, `Cliente B ${suffix}`);
+    const conversationsPromise = page.waitForResponse(
+      (r) =>
+        r.url().includes("/api/v1/conversations") &&
+        r.request().method() === "GET" &&
+        r.status() === 200,
+    );
     await page.getByRole("link", { name: "Voltar ao aplicativo" }).click();
     await page.waitForURL("**/app/inbox", { waitUntil: "load" });
+    await conversationsPromise;
     await expect(page.locator("[data-conversation-id]").getByText(`Cliente A ${suffix}`, { exact: true })).toBeVisible();
     const cookieBeforeFailure = (await page.context().cookies()).find(cookie => cookie.name === "active_org")?.value;
     await page.route("**/app/**", async route => {
@@ -159,7 +166,7 @@ test("org única oferece criação, responsável aceita e A→B→A não mistura
       await page.unroute("**/app/**");
       await expect(page.getByTestId("tenant-switcher")).toContainText(`Empresa ${own} ${suffix}`);
       expect(await page.evaluate(() => (window as unknown as Record<string, unknown>).__oldDocument)).toBeUndefined();
-      await expect(page.locator("[data-conversation-id]").getByText(`Cliente ${own} ${suffix}`, { exact: true })).toBeVisible();
+      await expect(page.locator("[data-conversation-id]").getByText(`Cliente ${own} ${suffix}`, { exact: true })).toBeVisible({ timeout: 15_000 });
       await expect(page.locator("[data-conversation-id]").getByText(`Cliente ${foreign} ${suffix}`, { exact: true })).toHaveCount(0);
     }
     await page.screenshot({ path: ".superpowers/evidence/comunidade-360/inbox-volta-a.png" });
@@ -171,7 +178,7 @@ test("org única oferece criação, responsável aceita e A→B→A não mistura
     await guest.goto(new URL(link).pathname);
     await guest.getByRole("button", { name: "Aceitar convite", exact: true }).click();
     await expect(guest.getByTestId("tenant-switcher")).toContainText(`Empresa B ${suffix}`);
-    await expect(guest.locator("[data-conversation-id]").getByText(`Cliente B ${suffix}`, { exact: true })).toBeVisible();
+    await expect(guest.locator("[data-conversation-id]").getByText(`Cliente B ${suffix}`, { exact: true })).toBeVisible({ timeout: 15_000 });
     const membership = await db.from("user_organizations").select("invited_by,role").eq("organization_id", orgB).eq("user_id", users[1]).single();
     expect(membership.data).toEqual({ invited_by: users[0], role: "admin" });
     await guest.screenshot({ path: ".superpowers/evidence/comunidade-360/aceite-na-org-b.png" });

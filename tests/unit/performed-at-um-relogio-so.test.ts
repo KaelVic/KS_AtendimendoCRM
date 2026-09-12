@@ -53,8 +53,8 @@ function arquivosQueEscrevemAtividade(): string[] {
     let saida = "";
     try {
       saida = execFileSync(
-        "grep",
-        ["-rl", "--include=*.ts", "--include=*.tsx", marca, ...PASTAS],
+        "git",
+        ["grep", "-l", marca, "--", ...PASTAS],
         { cwd: RAIZ, encoding: "utf8" },
       );
     } catch {

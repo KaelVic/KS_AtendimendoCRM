@@ -35,7 +35,6 @@ import { describe, expect, it } from "vitest";
 import {
   INTEGRACAO_DE_SESSAO,
   integracoesDoCliente,
-  isCommunityDsn,
   resolveSentryDsn,
 } from "@/lib/sentry/dsn";
 
@@ -178,9 +177,10 @@ describe("o ambiente da suíte desliga a telemetria", () => {
     ).toBe(true);
   });
 
-  it("e `off` de fato desliga — a guarda acima não vale nada se o valor não desligasse", () => {
+  it("e `off` ou vazio de fato desligam — telemetria desligada por padrão", () => {
     expect(resolveSentryDsn("off")).toBeUndefined();
-    // Controle: o vazio NÃO desliga, e é por isso que a linha acima é obrigatória.
-    expect(isCommunityDsn(resolveSentryDsn(""))).toBe(true);
+    expect(resolveSentryDsn("")).toBeUndefined();
+    expect(resolveSentryDsn(undefined)).toBeUndefined();
+    expect(resolveSentryDsn("https://fake@sentry.io/123")).toBe("https://fake@sentry.io/123");
   });
 });

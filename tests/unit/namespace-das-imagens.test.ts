@@ -53,7 +53,7 @@ const PUBLICA = fs.readFileSync(path.join(RAIZ, ".github/workflows/publish-image
 const ENV_EXEMPLO = fs.readFileSync(path.join(RAIZ, ".env.hostgator.example"), "utf8");
 
 /** O valor literal que este repositório publica. A âncora. */
-const NAMESPACE_DESTE_REPO = "ghcr.io/melgarafael";
+const NAMESPACE_DESTE_REPO = "ghcr.io/kaelvic";
 
 /**
  * Um fork que publica as próprias imagens muda `IMG_NS` — e precisa mudar junto
@@ -160,7 +160,7 @@ describe("o default do compose diz o mesmo que o kit", () => {
 
 describe("o kit aponta para o que o CI realmente publica", () => {
   it("os defaults de código e os labels de origem apontam para este repositório", () => {
-    const repo = "https://github.com/melgarafael/DeskcommCRM";
+    const repo = "https://github.com/KaelVic/KS_AtendimendoCRM";
     for (const script of ["install.sh", "comecar.sh"]) {
       const texto = fs.readFileSync(path.join(RAIZ, "hostgator-setup-kit", script), "utf8");
       expect(texto).toContain(`REPO_URL="\${REPO_URL:-${repo}.git}"`);
@@ -178,39 +178,30 @@ describe("o kit aponta para o que o CI realmente publica", () => {
     (namespace) => {
       const ns = namespace ?? imgNs();
       const [registry, owner] = ns.split("/");
-      const saida = execFileSync(
-        "bash",
-        [
-          "-c",
-          `
-        source hostgator-setup-kit/_common.sh
-        if [ -n "$1" ]; then IMG_NS="$1"; fi
-        curl() {
-          local arg
-          for arg in "$@"; do
-            case "$arg" in
-              https://*/token[?]*) printf '%s\\n' "$arg" >> "$log"; printf '{"token":"teste"}'; return;;
-              https://*/v2/*) printf '%s\\n' "$arg" >> "$log"; printf '200'; return;;
-            esac
-          done
-          return 1
-        }
-        log=$(mktemp)
-        trap 'rm -f "$log"' EXIT
-        # O dublê registra em arquivo porque a função captura stdout do curl.
-        ghcr_status deskcommcrm 1.2.3
-        printf '\\n'
-        cat "$log"
-      `,
-          "teste",
-          namespace ?? "",
-        ],
-        { cwd: RAIZ, encoding: "utf8" },
+      // Escreve o harness num arquivo temporário para que `mktemp` funcione
+      // corretamente dentro do bash — execFileSync com `-c` inline causa
+      // problemas de expansão de subshell no Windows (Git Bash / WSL), onde
+      // o path de os.tmpdir() não é acessível para o bash do WSL.
+      // Usa um caminho dentro do projeto (relativo ao CWD do processo bash).
+      const harnessFile = `.ghcr-test-harness-${Date.now()}.sh`;
+      const harnessPath = path.join(RAIZ, harnessFile);
+      const nsArg = namespace ?? "";
+      fs.writeFileSync(
+        harnessPath,
+        `#!/usr/bin/env bash\nset -euo pipefail\nsource hostgator-setup-kit/_common.sh\n` +
+          (nsArg ? `IMG_NS="${nsArg}"\n` : "") +
+          `curl() {\n  local arg\n  for arg in "$@"; do\n    case "$arg" in\n      https://*/token\\?*) printf '%s\\n' "$arg" >> "$log"; printf '{"token":"teste"}'; return;;\n      https://*/v2/*) printf '%s\\n' "$arg" >> "$log"; printf '200'; return;;\n    esac\n  done\n  return 1\n}\nlog=$(mktemp)\ntrap 'rm -f "$log"' EXIT\nghcr_status ks_atendimentocrm 1.2.3\nprintf '\\n'\ncat "$log"\n`,
       );
+      let saida: string;
+      try {
+        saida = execFileSync("bash", [harnessFile], { cwd: RAIZ, encoding: "utf8" });
+      } finally {
+        try { fs.unlinkSync(harnessPath); } catch { /* ignore */ }
+      }
       expect(saida.trim().split("\n")).toEqual([
         "200",
-        `https://${registry}/token?scope=repository:${owner}/deskcommcrm:pull&service=${registry}`,
-        `https://${registry}/v2/${owner}/deskcommcrm/manifests/1.2.3`,
+        `https://${registry}/token?scope=repository:${owner}/ks_atendimentocrm:pull&service=${registry}`,
+        `https://${registry}/v2/${owner}/ks_atendimentocrm/manifests/1.2.3`,
       ]);
     },
   );
@@ -273,47 +264,48 @@ describe("catraca: ninguém mais repete o namespace", () => {
    * para o que executa.
    */
   function reincidentes(): string[] {
-    const excluiDir = [
+    const IGNORADOS = new Set([
+      "docs",
+      "evidence",
+      ".claude",
       ".git",
       "node_modules",
       ".next",
-      "docs",
       "coverage",
       "playwright-report",
       "test-results",
       ".superpowers",
-      // Prova visual (PNG, trace) e worktrees aninhados — 42 MB e 4,8 s de
-      // varredura entre os dois, medido. Nenhum dos dois monta referência de
-      // imagem: `evidence/` é artefato de QA e `.claude/worktrees/` são OUTRAS
-      // árvores do repo, com o gate delas próprio.
-      "evidence",
-      ".claude",
-    ].map((d) => `--exclude-dir=${d}`);
-    // `.bak`/`.orig`/`.rej`/`~` são sobra de editor e de `sed -i.bak`. Sem isto,
-    // uma sabotagem local deixa o gate vermelho pelo motivo errado.
-    const excluiArq = ["*.md", "*.bak", "*.orig", "*.rej", "*~"].map((g) => `--exclude=${g}`);
+    ]);
+    const EXT_PROSA = new Set([".md", ".bak", ".orig", ".rej"]);
 
     let saida = "";
     try {
       saida = execFileSync(
-        "grep",
-        ["-rlF", NAMESPACE_DESTE_REPO, ".", ...excluiDir, ...excluiArq],
+        "git",
+        ["grep", "--untracked", "-lF", NAMESPACE_DESTE_REPO],
         { cwd: RAIZ, encoding: "utf8", maxBuffer: 8 * 1024 * 1024 },
       );
     } catch (e) {
-      // grep sai 1 quando não casa nada — que aqui é o resultado bom. Qualquer
+      // git grep sai 1 quando não casa nada — que aqui é o resultado bom. Qualquer
       // outro código é o INSTRUMENTO quebrado, e ele precisa gritar: um catch
       // que devolvesse [] daria verde com a varredura morta.
       const err = e as { status?: number; stderr?: string };
       if (err.status !== 1) {
-        throw new Error(`a varredura do namespace não rodou (grep saiu ${err.status}): ${err.stderr ?? ""}`);
+        throw new Error(`a varredura do namespace não rodou (git grep saiu ${err.status}): ${err.stderr ?? ""}`);
       }
     }
     return saida
       .split("\n")
       .filter(Boolean)
-      .map((l) => l.replace(/^\.\//, ""))
-      .filter((rel) => !PERMITIDO.has(rel))
+      .map((l) => l.replace(/^\.\//, "").replace(/\r$/, ""))
+      .filter((rel) => {
+        if (PERMITIDO.has(rel)) return false;
+        const ext = rel.match(/\.[^./]+$/)?.[0] ?? "";
+        if (EXT_PROSA.has(ext) || rel.endsWith("~")) return false;
+        const topDir = rel.split("/")[0] ?? "";
+        if (IGNORADOS.has(topDir)) return false;
+        return true;
+      })
       .sort();
   }
 
@@ -326,7 +318,7 @@ describe("catraca: ninguém mais repete o namespace", () => {
     // ficaria vermelho por tabela — dois vermelhos onde o desenho promete um.
     // Aqui o literal existe por construção, em `NAMESPACE_DESTE_REPO`.
     const alvo = "tests/unit/namespace-das-imagens.test.ts";
-    const saida = execFileSync("grep", ["-rlF", NAMESPACE_DESTE_REPO, alvo], {
+    const saida = execFileSync("git", ["grep", "--untracked", "-lF", NAMESPACE_DESTE_REPO, "--", alvo], {
       cwd: RAIZ,
       encoding: "utf8",
     });

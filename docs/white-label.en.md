@@ -1,10 +1,10 @@
-<!-- traduzido-de: docs/white-label.md@e1d374bb48e0 -->
+<!-- traduzido-de: docs/white-label.md@96c3c3c19c41 -->
 
 [🇧🇷 Português](white-label.md) · 🇺🇸 English · [🇪🇸 Español](white-label.es.md)
 
 # Installing for clients (agencies and resellers)
 
-A guide for whoever installs DeskcommCRM **for other companies** — agency, consultancy, reseller — and charges for it.
+A guide for whoever installs KS Atendimento IA **for other companies** — agency, consultancy, reseller — and charges for it.
 
 The license is MIT: you may modify it, host it for third parties, resell it and charge whatever you want. There is no royalty, no clause forbidding commercial hosting, and there is no paid edition that locks features away from your client.
 
@@ -33,7 +33,7 @@ Between the two, **the file uploaded from the screen beats the `.env` URL** — 
 ```bash
 APP_NAME=Turbo Sales CRM
 APP_LOGO_URL=https://cdn.yourcompany.com/logo.svg
-APP_ACCENT_HEX=#7a5cd6
+APP_ACCENT_HEX=#00B4D8
 ```
 
 `install.sh` asks for **two** of them and writes them down: `APP_NAME` (Enter keeps the default) and `APP_ACCENT_HEX` (Enter uses the system color). It does not ask for `APP_LOGO_URL` — the normal path for the logo is uploading the file from the screen, and this key exists for whoever would rather host it themselves.
@@ -79,7 +79,7 @@ This does not make the dedicated installation obsolete — see the comparison be
 Straight to the point, so that you do not find out in front of the client. Each line carries the measured reason, not the excuse:
 
 - **Domain per organization.** One installation, one domain. There is no domain column in the schema, the host-based branching in `proxy.ts` is a declared NOOP (it exists only as documentation of the intended topology), and at the Edge there is no database to query before deciding whom that host belongs to. A client who demands their own domain is asking for a **dedicated installation**.
-- **Font.** Typography is the same in every installation. `next/font` resolves at **build** time, and the image your VPS downloads already arrives built — a font picker in the panel would save a value that nothing would read. (The font is Atkinson Hyperlegible, chosen by the Braille Institute for legibility; swapping it does not change brand perception and makes reading worse for whoever spends the day inside the system.)
+- **Font.** Typography is the same in every installation. `next/font` resolves at **build** time, and the image your VPS downloads already arrives built — a font picker in the panel would save a value that nothing would read. (The official fonts are Sora for headings and Inter for body/interface, ensuring modern aesthetics and legibility for daily use.)
 - **Theme.** The light/dark pair belongs to the design system. Your brand moves the **accent** — what is action, highlight and focus — and deliberately does **not** move the page background: the background is the same under every brand, and that is why the browser bar color is too.
 - **The LGPD data-subject report does not carry your brand — and that is on purpose.** See its own section below.
 - **The AI budget alarm** still goes out with our brand. It is the only known leak, and it stays: today that alarm has no schedule wired to it at all, so fixing its brand would change nothing anyone sees. It goes out when the alarm gets a real cron.

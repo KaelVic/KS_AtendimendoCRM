@@ -2,7 +2,7 @@
 
 # Instalar para clientes (agências e revendedores)
 
-Guia para quem instala o DeskcommCRM **para outras empresas** — agência, consultoria, revendedor — e cobra por isso.
+Guia para quem instala o KS Atendimento IA **para outras empresas** — agência, consultoria, revendedor — e cobra por isso.
 
 A licença é MIT: você pode modificar, hospedar para terceiros, revender e cobrar o que quiser. Não há royalty, não há cláusula proibindo hospedagem comercial e não existe versão paga que trave funcionalidade do seu cliente.
 
@@ -31,7 +31,7 @@ Entre os dois, **o arquivo subido pela tela vence a URL do `.env`** — quem sub
 ```bash
 APP_NAME=Vendas Turbo CRM
 APP_LOGO_URL=https://cdn.suaempresa.com.br/logo.svg
-APP_ACCENT_HEX=#7a5cd6
+APP_ACCENT_HEX=#00B4D8
 ```
 
 O `install.sh` pergunta **duas** delas e as grava: o `APP_NAME` (Enter mantém o padrão) e o `APP_ACCENT_HEX` (Enter usa a cor do sistema). `APP_LOGO_URL` ele não pergunta — o caminho normal do logo é subir o arquivo pela tela, e esta chave existe para quem prefere hospedar por conta própria.
@@ -77,7 +77,7 @@ Isso não torna a instalação dedicada obsoleta — ver a comparação abaixo, 
 Sendo direto, para você não descobrir na frente do cliente. Cada linha traz a razão medida, não a desculpa:
 
 - **Domínio por organização.** Uma instalação, um domínio. Não há coluna de domínio no schema, o desvio por host no `proxy.ts` é um NOOP declarado (existe só como documentação da topologia pretendida), e no Edge não há banco para consultar antes de decidir a quem aquele host pertence. Cliente que exige o próprio domínio pede **instalação dedicada**.
-- **Fonte.** A tipografia é a mesma em toda instalação. `next/font` resolve em tempo de **build**, e a imagem que a sua VPS baixa já vem construída — um seletor de fonte no painel salvaria um valor que nada leria. (A fonte é a Atkinson Hyperlegible, escolhida pelo Braille Institute por legibilidade; trocá-la não muda percepção de marca e piora a leitura de quem passa o dia no sistema.)
+- **Fonte.** A tipografia é a mesma em toda instalação. `next/font` resolve em tempo de **build**, e a imagem que a sua VPS baixa já vem construída — um seletor de fonte no painel salvaria um valor que nada leria. (As fontes oficiais são Sora para títulos e Inter para corpo de texto/interface, garantindo modernidade e legibilidade para quem passa o dia no sistema.)
 - **Tema.** O par claro/escuro é do design system. A sua marca move o **accent** — o que é ação, destaque e foco —, e deliberadamente **não** move o fundo da página: o fundo é o mesmo em toda marca, e é por isso que a cor da barra do navegador também é.
 - **O relatório de LGPD do titular não leva a sua marca — e isso é de propósito.** Ver a seção própria abaixo.
 - **O alarme de orçamento de IA** ainda sai com a nossa marca. É o único vazamento conhecido, e ele fica: hoje esse alarme não tem agendamento nenhum ligado, então consertar a marca dele não mudaria nada que alguém veja. Sai quando o alarme ganhar cron de verdade.

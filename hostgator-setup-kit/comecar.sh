@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# DeskcommCRM — a porta de entrada.
+# KS Atendimento IA — a porta de entrada.
 #
 # Diferente do install.sh, este script roda no SEU computador (macOS, Linux ou
 # WSL), antes de existir servidor. Ele responde a única pergunta que trava quem
@@ -9,15 +9,14 @@
 #
 # Uso:
 #   bash comecar.sh
-#   curl -fsSL https://raw.githubusercontent.com/melgarafael/DeskcommCRM/main/hostgator-setup-kit/comecar.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/KaelVic/KS_AtendimendoCRM/main/hostgator-setup-kit/comecar.sh | bash
 #
 set -euo pipefail
 
-REPO_URL="${REPO_URL:-https://github.com/melgarafael/DeskcommCRM.git}"
-# Link de parceria com a HostGator. Mesma URL e mesmo rótulo do README: uma
-# promessa só, num lugar só — duas redações da mesma oferta viram duas ofertas.
-VPS_URL="https://www.hostgator.com.br/52708-141-3-52.html"
-COMUNIDADE_URL="https://lp-comunidade.automatiklabs.com.br"
+REPO_URL="${REPO_URL:-https://github.com/KaelVic/KS_AtendimendoCRM.git}"
+# Link de contratação de VPS e fórum da comunidade.
+VPS_URL="https://www.hostgator.com.br/servidor-vps"
+COMUNIDADE_URL="https://github.com/KaelVic/KS_AtendimendoCRM/discussions"
 
 # ── Aparência ───────────────────────────────────────────────────────────────
 # Gêmeas das do install.sh (que por sua vez é standalone porque roda antes do
@@ -134,9 +133,8 @@ mostrar_requisitos() {
        ${VPS_URL}
 
 REQ
-  c_dim "  Esse é um link de parceria: assinar por ele sai com desconto e ajuda a"
-  c_dim "  manter o projeto. O CRM é MIT e roda em qualquer servidor — se você já"
-  c_dim "  tem um, ou prefere outro provedor, funciona igual."
+  c_dim "  O CRM é MIT e roda em qualquer VPS com Docker e 4 GB de RAM — se você"
+  c_dim "  já tem um servidor ou prefere outro provedor, funciona igual."
   printf '\n'
 }
 
@@ -145,8 +143,8 @@ comando_de_instalacao() {
 
   Já dentro do servidor, cole isto:
 
-       git clone ${REPO_URL} deskcommcrm
-       cd deskcommcrm
+       git clone ${REPO_URL} ks_atendimentocrm
+       cd ks_atendimentocrm
        bash hostgator-setup-kit/install.sh
 
   O instalador cuida do resto: instala o Docker se faltar, cria o banco,

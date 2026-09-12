@@ -1,6 +1,6 @@
-# DeskcommCRM — Kit de Instalação (HostGator)
+# KS Atendimento IA — Kit de Instalação (HostGator)
 
-Este kit sobe o **DeskcommCRM** no seu servidor VPS da HostGator. Você tem dois caminhos:
+Este kit sobe o **KS Atendimento IA** no seu servidor VPS da HostGator. Você tem dois caminhos:
 
 > **Ainda nem tem servidor?** Comece por `comecar.sh` — ele roda **no seu computador**, antes
 > de existir VPS, e responde a pergunta que trava todo mundo no início: *o que eu preciso
@@ -12,7 +12,7 @@ Este kit sobe o **DeskcommCRM** no seu servidor VPS da HostGator. Você tem dois
 > bash comecar.sh
 > ```
 
-> **Outra hospedagem?** O kit é feito para a HostGator (é a parceria do projeto e o caminho
+> **Outra hospedagem?** O kit foi preparado para a HostGator (o caminho
 > testado de ponta a ponta), mas roda em qualquer VPS com Docker. Se a sua já vem com um
 > **proxy reverso próprio** ocupando as portas 80/443 — caso de Hostinger, Coolify, Dokploy
 > e CapRover —, o instalador **detecta isso sozinho** e publica o CRM através dele, em vez
@@ -21,9 +21,9 @@ Este kit sobe o **DeskcommCRM** no seu servidor VPS da HostGator. Você tem dois
 
 ## 🤖 Caminho fácil: deixe o Claude Code fazer
 
-1. Contrate um **VPS na HostGator** e acesse-o por SSH.
+1. Contrate uma **VPS** (HostGator ou outra de sua preferência) e acesse-a por SSH.
 2. Jogue esta pasta (ou o `.zip`) no chat do **Claude Code** rodando dentro do VPS.
-3. Diga: *"instala o DeskcommCRM pra mim"*. Ele lê o `CLAUDE.md` e conduz tudo —
+3. Diga: *"instala o KS Atendimento IA pra mim"*. Ele lê o `CLAUDE.md` e conduz tudo —
    cria o banco, gera as senhas, sobe o CRM e te ajuda a conectar o WhatsApp.
 
 ## ⚙️ Caminho manual: um comando

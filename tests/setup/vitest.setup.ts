@@ -79,3 +79,11 @@ if (typeof globalThis.ResizeObserver === "undefined") {
     disconnect() {}
   };
 }
+
+// jsdom substitui globalThis.File por uma versão incompatível com webidl.is.File do undici (Node 22+).
+// Restaurar o File nativo do node:buffer garante que req.formData() funcione nos testes de API.
+import { File as NodeFile } from "node:buffer";
+if (typeof NodeFile !== "undefined") {
+  globalThis.File = NodeFile as unknown as typeof File;
+}
+

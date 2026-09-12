@@ -27,7 +27,14 @@ async function customize(page: Page, email: string, only?: string) {
       if (await checkbox.isChecked()) await checkbox.uncheck();
     await dialog.getByRole("checkbox", { name: only, exact: true }).check();
   }
+  const savePromise = page.waitForResponse(
+    (r) =>
+      r.url().includes("/interface") &&
+      r.request().method() === "PATCH" &&
+      r.status() === 200,
+  );
   await dialog.getByRole("button", { name: "Salvar interface" }).click();
+  await savePromise;
   await expect(dialog).toHaveCount(0);
 }
 test("interface por membro atualiza ao vivo, preserva formulário e convite aplica seleção", async ({
@@ -97,10 +104,14 @@ test("interface por membro atualiza ao vivo, preserva formulário e convite apli
     await login(other, emails[2]!);
     await expect(nav(member).getByRole("link", { name: "Radar", exact: true })).toBeVisible();
     const framesBefore = realtime.length;
+    const interfacePromise = member.waitForResponse(
+      (r) => r.url().includes("/api/v1/auth/interface") && r.status() === 200,
+    );
     await customize(page, emails[1]!);
     // Evento real precisa chegar; polling não pode aprovar a observação em tempo real.
     await expect.poll(() => realtime.length, { timeout: 15_000 }).toBeGreaterThan(framesBefore);
-    await expect(nav(member).getByRole("link", { name: "Radar", exact: true })).toHaveCount(0);
+    await interfacePromise;
+    await expect(nav(member).getByRole("link", { name: "Radar", exact: true })).toHaveCount(0, { timeout: 15_000 });
     await expect(nav(other).getByRole("link", { name: "Radar", exact: true })).toBeVisible();
     await expect(member.getByLabel("Nome completo")).toHaveValue("Rascunho não salvo");
     expect(member.url()).toContain("/app/settings/profile");
@@ -117,8 +128,12 @@ test("interface por membro atualiza ao vivo, preserva formulário e convite apli
     await member.goto("/app/radar");
     await expect(member.getByRole("heading", { name: /Radar/ }).first()).toBeVisible();
     await member.goto("/app/settings/profile");
+    const interfacePromise2 = member.waitForResponse(
+      (r) => r.url().includes("/api/v1/auth/interface") && r.status() === 200,
+    );
     await customize(page, emails[1]!, "Produtos");
-    await expect(nav(member).getByRole("link", { name: "Inbox", exact: true })).toHaveCount(0);
+    await interfacePromise2;
+    await expect(nav(member).getByRole("link", { name: "Inbox", exact: true })).toHaveCount(0, { timeout: 15_000 });
     await member.goto("/app");
     await member.waitForURL("**/app/products");
     await nav(member).getByRole("link", { name: "Ver tudo em CRM" }).click();

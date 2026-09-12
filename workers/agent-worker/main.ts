@@ -36,7 +36,7 @@ import { StaleServiceBoundaryError } from "@/lib/atendimento/fronteira";
 // O `@sentry/nextjs` funciona fora do Next — aqui é só `Sentry.init` puro,
 // sem `instrumentation.ts` porque o worker não é um processo Next.
 import * as Sentry from "@sentry/nextjs";
-import { resolveSentryDsn, isCommunityDsn, DEFAULT_SENTRY_DSN } from "@/lib/sentry/dsn";
+import { resolveSentryDsn, isCommunityDsn } from "@/lib/sentry/dsn";
 import { sentryScrubHooks } from "@/lib/sentry/scrub";
 
 const sentryDsn = resolveSentryDsn(process.env.SENTRY_DSN);
@@ -45,7 +45,6 @@ const sentryCommunity = isCommunityDsn(sentryDsn);
 Sentry.init({
   dsn: sentryDsn,
 
-  // No Sentry da comunidade, só erro (issue #100). Ver isCommunityDsn().
   tracesSampleRate: sentryCommunity ? 0 : 1,
   enableLogs: true,
   sendDefaultPii: false,
@@ -53,17 +52,8 @@ Sentry.init({
   ...sentryScrubHooks,
 });
 
-// Transparência de telemetria (mesma mensagem de sentry.server.config.ts,
-// adaptada para o processo worker): uma linha no boot dizendo o que está
-// ativo e como desligar.
 if (!sentryDsn) {
-  console.info("[telemetria] worker: Desligada (SENTRY_DSN=off) — nenhum erro é enviado.");
-} else if (sentryDsn === DEFAULT_SENTRY_DSN) {
-  console.info(
-    "[telemetria] worker: Relatórios de erro anonimizados ATIVOS (Sentry da comunidade). " +
-      "Sem rastreamento de performance nem replay de sessão. " +
-      "Desligue com SENTRY_DSN=off, ou envie pro seu com SENTRY_DSN=<seu-dsn>.",
-  );
+  console.info("[telemetria] worker: Desligada — nenhum erro é enviado (defina SENTRY_DSN para ativar monitoramento).");
 } else {
   console.info("[telemetria] worker: Erros sendo enviados ao Sentry configurado em SENTRY_DSN.");
 }

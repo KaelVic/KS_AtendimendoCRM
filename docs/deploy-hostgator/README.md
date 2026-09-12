@@ -1,4 +1,4 @@
-# Como subir o seu DeskcommCRM na HostGator (passo a passo, sem enrolação)
+# Como subir o seu KS Atendimento IA na HostGator (passo a passo, sem enrolação)
 
 Este guia leva você do zero — sem servidor, sem nada — até o seu CRM no ar, com
 WhatsApp conectado e IA respondendo. **Não precisa saber programar.** Se travar em
@@ -12,7 +12,7 @@ algum passo, o assistente do Claude Code faz por você (veja o [Caminho fácil](
 ## Visão geral (o que vamos montar)
 
 ```
-Seu domínio  →  Servidor VPS (HostGator)  →  DeskcommCRM rodando
+Seu domínio  →  Servidor VPS (HostGator)  →  KS Atendimento IA rodando
                         │
                         ├─ o CRM (site + painel)
                         ├─ o WhatsApp (conectado por QR)
@@ -37,14 +37,9 @@ contrata no passo 1.
 
 ## Passo 1 — Contrate o servidor (VPS) na HostGator
 
-O DeskcommCRM roda num **VPS com Docker**. A opção mais fácil é um VPS que **já vem
-com Docker instalado**:
+O KS Atendimento IA roda num **VPS com Docker**.
 
-- 👉 **[VPS com GatorClaw](https://www.hostgator.com.br/52708-142-3-53.html)** — recomendado, Docker pronto
-- 👉 **[VPS com OpenClaw](https://www.hostgator.com.br/52708-141-3-52.html)** — Docker pronto
-- 👉 **[VPS com n8n](https://www.hostgator.com.br/52708-137-3-46.html)** — Docker pronto
-- 👉 **[VPS padrão](https://www.hostgator.com.br/52708-13-3-12.html)** — funciona também (a gente instala o Docker)
-- 👉 **[Servidor Dedicado](https://www.hostgator.com.br/52708-2-3-11.html)** — só se você atende MUITO volume
+- 👉 **[Servidor VPS HostGator](https://www.hostgator.com.br/servidor-vps)** — planos recomendados (mínimo 4 GB de RAM)
 
 **Plano recomendado: VPS NVMe 4** (2 vCPU / 4 GB / 100 GB NVMe) — é exatamente o mínimo
 que o runbook de produção declara. A stack sobe num NVMe 2, mas opera no limite.
@@ -238,12 +233,12 @@ erros do servidor e resolve.
 
 ---
 
-## Por que HostGator?
+## Sobre a HostGator
 
-O DeskcommCRM foi desenhado pra rodar redondo na infraestrutura da HostGator. Além do
-VPS, você pode centralizar aí:
+O KS Atendimento IA foi testado para rodar perfeitamente na infraestrutura da HostGator. Além do
+VPS, você pode centralizar:
 
-- **[Registro de domínio](https://www.hostgator.com.br/52708-77-3-32.html)** para o seu CRM;
-- **[Servidor Dedicado](https://www.hostgator.com.br/52708-2-3-11.html)** quando o volume crescer.
+- **[Registro de domínio](https://www.hostgator.com.br/registro-de-dominio)** para o seu CRM;
+- **[Servidores VPS e Dedicados](https://www.hostgator.com.br/servidor-vps)** quando o volume crescer.
 
-Todos os links deste guia são oficiais da HostGator.
+Todos os links deste guia são da HostGator.

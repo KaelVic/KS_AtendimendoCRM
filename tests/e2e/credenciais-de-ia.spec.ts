@@ -28,7 +28,12 @@ test.describe("Chaves de acesso à IA", () => {
 
     await page.locator("#cred-label").fill(rotulo);
     await page.locator("#cred-key").fill("sk-ant-c••••••••••••••••••••••••");
+    const savePromise = page.waitForResponse(
+      (res) => res.url().includes("/api/v1/ai/credentials") && res.request().method() === "POST",
+    );
     await page.getByRole("button", { name: /salvar e validar/i }).click();
+    await savePromise;
+    await expect(dialog).not.toBeVisible();
 
     const card = page.locator("li", { hasText: rotulo });
     await expect(card).toBeVisible();
@@ -53,8 +58,12 @@ test.describe("Chaves de acesso à IA", () => {
     expect(modelos).toMatch(/^(\d+|—)$/);
 
     // Limpeza pela própria tela: não está em uso, então o botão está habilitado.
+    const deletePromise = page.waitForResponse(
+      (res) => res.url().includes("/api/v1/ai/credentials") && res.request().method() === "DELETE",
+    );
     await card.getByRole("button", { name: /excluir credencial/i }).click();
     await page.getByRole("button", { name: /^remover$/i }).click();
+    await deletePromise;
     await expect(card).toHaveCount(0);
 
     await page.screenshot({ path: ".superpowers/evidence/credenciais-de-ia.png", fullPage: true });
