@@ -8,6 +8,61 @@ Se você roda o DeskcommCRM numa VPS, **leia a seção da versão para a qual es
 
 ## [Não lançado]
 
+## [1.18.0] — 2026-09-14
+
+### Adicionado
+
+- **A IA espera e mostra "digitando…" antes da primeira resposta** O atendimento automático deixa de responder no mesmo instante em que termina de pensar. Antes da primeira mensagem de cada resposta, ele acende o "digitando…" no WhatsApp do cliente e espera um tempo proporcional ao tamanho do texto — entre 1,2 e 7,5 segundos.
+
+  A pausa acontece uma vez por resposta. O intervalo entre as mensagens seguintes continua sendo o mesmo de sempre, o que protege o número contra bloqueio.
+
+  Nada muda na configuração: não há variável nova para preencher nem passo de atualização.
+
+  Trabalho original de @w4rlockem, a partir do relato de um dono de instalação de que a IA "responde rápido demais, parece robô".
+
+- **Central de avisos ganha o botão "Marcar todos resolvidos"** A Central de avisos (`/app/ai/inbox`) só resolvia aviso por aviso. Com a lista acumulando —
+  144 abertos numa instalação real — a única saída era clicar item a item. Agora, na aba
+  "Abertos", o botão **Marcar todos resolvidos** fecha todos de uma vez: uma única atualização
+  escopada à sua organização, registrada na auditoria com a contagem. Se o lote falhar, a tela
+  avisa e pede para conferir a lista — nada é fechado em silêncio.
+
+  No mesmo passe, o título e o texto de cada aviso deixaram de passar pelo tradutor da
+  interface. Eles são escritos no momento do evento e carregam nome de cliente, número e o que
+  você cadastrou; quem usa o sistema em espanhol passa a ler o aviso exatamente como ele foi
+  gravado. Os rótulos da tela seguem traduzidos.
+
+  Trabalho original de @rafaelbatistazz.
+
+### Corrigido
+
+- **A IA não envia falso aviso de mensagem vazia** Antes de enviar uma resposta, o atendimento automático bloqueia a afirmação de que a mensagem chegou vazia quando o texto recebido está confirmado no CRM.
+
+  Trabalho original de @CristianoFF43, medido na instalação dele.
+
+- **Abrir uma conversa por link direto para de esperar a lista carregar** Quem chega ao Inbox por um link direto para uma conversa — `/app/inbox/<id>`, o clique num
+  aviso, o retorno de uma tela de IA — via a coluna do contato (demandas, memória, negócios)
+  demorar vários segundos a mais que o resto da tela, sobretudo quando a conversa não aparece na
+  aba aberta (por exemplo, uma conversa já encerrada).
+
+  A causa era ordem, não peso: a busca da conversa por id só começava depois de a lista de
+  conversas terminar de carregar — e a lista carrega **duas vezes** por abertura de tela, porque
+  o filtro da aba Fila muda quando o sistema descobre se a organização tem atendimento automático
+  de pé. Eram quatro idas ao servidor em fila indiana antes de o painel do contato poder começar.
+
+  Agora a busca da conversa sai junto com a lista, e não atrás dela.
+
+- **A IA para de perder os horários da noite quando o cliente pede um dia** Quando o cliente nomeava uma data ("pode ser dia 13?"), o atendimento automático
+  montava o dia de meia-noite a meia-noite no relógio de Londres. Em quem atende no
+  Amazonas, esse dia terminava às 19h59 — e um horário das 21h que o próprio
+  atendimento tinha acabado de oferecer sumia da consulta seguinte, como se a agenda
+  estivesse cheia. Agora o dia pedido é o dia do fuso da agenda, do começo ao fim.
+
+  Achado e corrigido por @CristianoFF43, na instalação dele, no PR #612.
+
+- **A IA passa a responder à última mensagem recebida** O atendimento automático deixa de tratar como vazia uma mensagem que chegou com texto quando um resumo anterior estiver incorreto.
+
+  Trabalho original de @CristianoFF43, medido na instalação dele.
+
 ## [1.17.0] — 2026-09-08
 
 ### Adicionado
@@ -3225,7 +3280,8 @@ Primeira versão marcada do DeskcommCRM. O projeto vinha sendo desenvolvido publ
 
 - **Node 22 é obrigatório para desenvolvimento.** A suíte de invariantes instancia o cliente do Supabase, que exige o `WebSocket` global — nativo apenas a partir do Node 22. Isso não afeta quem apenas hospeda: a VPS roda a imagem pronta.
 
-[Não lançado]: https://github.com/melgarafael/DeskcommCRM/compare/v1.17.0...HEAD
+[Não lançado]: https://github.com/KaelVic/KS_AtendimendoCRM/compare/v1.18.0...HEAD
+[1.18.0]: https://github.com/KaelVic/KS_AtendimendoCRM/compare/v1.17.0...v1.18.0
 [1.17.0]: https://github.com/melgarafael/DeskcommCRM/compare/v1.16.1...v1.17.0
 [1.16.1]: https://github.com/melgarafael/DeskcommCRM/compare/v1.16.0...v1.16.1
 [1.16.0]: https://github.com/melgarafael/DeskcommCRM/compare/v1.15.1...v1.16.0
